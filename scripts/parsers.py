@@ -84,7 +84,9 @@ def parse_rommer_sheet(file_path, sheet_name, sheet_id, discount_percent):
             
             # Формируем коды для артикула
             height_code = str(height_val)[0]
-            length_code = str(length_val).zfill(3)
+            # Переводим длину из миллиметров в сантиметры и формируем трёхзначный код
+            length_cm = length_val // 10  # или int(length_val / 10)
+            length_code = str(length_cm).zfill(3)
             
             # Боковое подключение
             if price_side:
@@ -92,7 +94,7 @@ def parse_rommer_sheet(file_path, sheet_name, sheet_id, discount_percent):
                 products.append({
                     'sheet_id': sheet_id,
                     'article': article_side,
-                    'name': f"ROMMER Радиатор стальной {current_type}/500/{length_val} боковое подключение Compact",
+                    'name': f"ROMMER Радиатор стальной {current_type}/{height_val}/{length_val} боковое подключение Compact",
                     'price_retail': price_side,
                     'discount_percent': discount_percent
                 })
@@ -103,7 +105,7 @@ def parse_rommer_sheet(file_path, sheet_name, sheet_id, discount_percent):
                 products.append({
                     'sheet_id': sheet_id,
                     'article': article_bottom,
-                    'name': f"ROMMER Радиатор стальной {current_type}/500/{length_val} нижнее подключение Ventil Compact",
+                    'name': f"ROMMER Радиатор стальной {current_type}/{height_val}/{length_val} нижнее подключение Ventil Compact",
                     'price_retail': price_bottom,
                     'discount_percent': discount_percent
                 })

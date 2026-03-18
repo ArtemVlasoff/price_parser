@@ -1,6 +1,7 @@
 import psycopg2
 from psycopg2.extras import execute_values
 from config import NEON_DB_URL
+from datetime import timedelta
 import logging
 
 logger = logging.getLogger(__name__)
@@ -31,10 +32,13 @@ def get_or_create_sheet(conn, sheet_name, default_discount=0):
         return sheet_id
 
 def save_products_to_db(conn, products, price_date):
-    """Сохраняет список товаров и цен"""
+    """
+    Сохраняет товары и цены с учётом периодов действия.
+    price_date - дата прайса (дата начала действия цен)
+    """
     cur = conn.cursor()
     
-    # Вставка/обновление товаров
+    # 1. Вставка/обновление товаров
     insert_product_sql = """
         INSERT INTO products (sheet_id, article, name)
         VALUES %s
@@ -48,17 +52,31 @@ def save_products_to_db(conn, products, price_date):
     for row in execute_values(cur, insert_product_sql, product_data, page_size=100, fetch=True):
         product_ids[row[1]] = row[0]
     
-    # Вставка истории цен
+    # 2. Для каждого товара закрываем предыдущую текущую запись
+    for article, product_id in product_ids.items():
+        cur.execute("""
+            UPDATE price_history 
+            SET valid_to = %s, is_current = false
+            WHERE product_id = %s AND is_current = true
+        """, (price_date - timedelta(days=1), product_id))
+    
+    # 3. Вставляем новые записи
     history_sql = """
-        INSERT INTO price_history (product_id, price_date, price_retail, price_discounted, discount_applied)
+        INSERT INTO price_history 
+            (product_id, price_retail, price_discounted, discount_applied, 
+             valid_from, is_current)
         VALUES %s
-        ON CONFLICT (product_id, price_date) DO NOTHING
     """
     history_data = [
-        (product_ids[p['article']], price_date, p['price_retail'],
+        (product_ids[p['article']], 
+         p['price_retail'],
          round(p['price_retail'] * (1 - p['discount_percent'] / 100), 2),
-         p['discount_percent'])
+         p['discount_percent'],
+         price_date,
+         True)
         for p in products
     ]
     execute_values(cur, history_sql, history_data)
+    
     conn.commit()
+    logger.info(f"Сохранено {len(products)} записей с датой начала {price_date}")
