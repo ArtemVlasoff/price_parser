@@ -1,0 +1,41 @@
+# Виртуальное окружение
+venv/
+env/
+.env
+.venv/
+ENV/
+
+# Файлы с секретами и конфигурацией
+.env
+*.env
+
+# Папки с данными
+price_files/
+output/
+*.xlsx
+*.xls
+*.csv
+*.db
+
+# Кэши Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Файлы IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Логи
+*.log
+
+# Системные файлы
+.DS_Store
+Thumbs.db
