@@ -114,36 +114,57 @@ def main():
         logger.warning(f"⚠️ Дата не найдена, используется сегодняшняя: {price_date}")
 
     conn = get_connection()
+
+    def safe_conn():
+        """Возвращает живое соединение, переподключаясь если нужно."""
+        nonlocal conn
+        if conn.closed:
+            logger.info("♻️  Переподключение к БД...")
+            conn = get_connection()
+        return conn
+
     try:
         # ── Терем (STOUT / ROMMER, много листов) ──────────────────────────
         if args.type == 'terem':
             sheets_in_file = get_terem_sheets(file_path)
             logger.info(f"Листов STOUT/ROMMER в файле: {len(sheets_in_file)}")
 
+            # Создаём все листы в БД до долгого парсинга
             sheet_ids, sheet_discounts = {}, {}
             for s in sheets_in_file:
                 sid, disc = ensure_sheet_exists(conn, s, 0.0)
-                sheet_ids[s]      = sid
+                sheet_ids[s]       = sid
                 sheet_discounts[s] = disc
+            conn.commit()
 
+            # Парсим все листы (долгая операция — БД не трогаем)
             all_products = parse_terem_file(file_path, sheet_discounts, sheet_ids)
 
+            # Каждый лист — отдельный коммит, защита от таймаута SSL
             total_stats = {'new': 0, 'changed': 0, 'unchanged': 0, 'total': 0}
             for sheet_name, products in all_products.items():
                 if not products:
                     logger.warning(f"⚠️ {sheet_name}: товары не найдены")
                     continue
-                st = save_products_to_db(conn, products, price_date)
-                for k in total_stats:
-                    total_stats[k] += st[k]
-                logger.info(f"  {sheet_name}: {st}")
+                try:
+                    c = safe_conn()
+                    st = save_products_to_db(c, products, price_date)
+                    c.commit()
+                    for k in total_stats:
+                        total_stats[k] += st[k]
+                    logger.info(f"  ✓ {sheet_name}: новых={st['new']} изм={st['changed']} без_изм={st['unchanged']}")
+                except Exception as sheet_err:
+                    logger.error(f"  ✗ {sheet_name}: {sheet_err}")
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
 
-            conn.commit()
             logger.info(f"✅ Итого: {total_stats}")
 
         # ── Плоский прайс (один лист) ──────────────────────────────────────
         else:
-            supplier = args.supplier or os.path.splitext(args.file)[0]
+            supplier  = args.supplier or os.path.splitext(args.file)[0]
             sheet_arg = args.sheet if args.sheet else 0
             sid, saved_disc = ensure_sheet_exists(conn, supplier, args.discount)
             actual_disc = args.discount if args.discount else saved_disc
@@ -159,11 +180,17 @@ def main():
             logger.info(f"✅ Готово: {stats}")
 
     except Exception as e:
-        conn.rollback()
         logger.error(f"❌ Ошибка: {e}", exc_info=True)
-        logger.info("⚠️ Транзакция отменена")
+        try:
+            conn.rollback()
+            logger.info("⚠️ Транзакция отменена")
+        except Exception:
+            pass
     finally:
-        conn.close()
+        try:
+            conn.close()
+        except Exception:
+            pass
         logger.info("Соединение закрыто")
         logger.info("=" * 50)
 
