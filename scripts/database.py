@@ -1,6 +1,6 @@
 import psycopg2
 from psycopg2.extras import execute_values
-from datetime import timedelta, date
+from datetime import timedelta, date, datetime
 from config import NEON_DB_URL
 import logging
 
@@ -154,15 +154,17 @@ def save_products_to_db(conn, products: list[dict], price_date: date) -> dict:
                     SET valid_to = %s, is_current = false
                     WHERE id = %s
                 """, (price_date - timedelta(days=1), history_id))
+                now = datetime.now()
                 new_records.append((
                     product_id, new_price, new_price_discounted, new_discount,
-                    price_date, FOREVER_DATE, True
+                    price_date, FOREVER_DATE, True, now, now
                 ))
                 stats['changed'] += 1
         else:
+            now = datetime.now()
             new_records.append((
                 product_id, new_price, new_price_discounted, new_discount,
-                price_date, FOREVER_DATE, True
+                price_date, FOREVER_DATE, True, now, now
             ))
             stats['new'] += 1
 
@@ -176,7 +178,7 @@ def save_products_to_db(conn, products: list[dict], price_date: date) -> dict:
         execute_values(cur, """
             INSERT INTO price_history
                 (product_id, price_retail, price_discounted, discount_applied,
-                 valid_from, valid_to, is_current, created_at, updated_at)
+                 valid_from, valid_to, is_current)
             VALUES %s
         """, new_records, page_size=1000)
 

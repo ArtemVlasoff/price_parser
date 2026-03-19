@@ -158,6 +158,7 @@ def parse_rommer_spr(
     df = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
     logger.info(f"[Rommer СПР] {df.shape}")
     products = []
+    seen = set()
     current_type = current_height = None
     i = 6
     while i < len(df):
@@ -167,6 +168,7 @@ def parse_rommer_spr(
             m = re.search(r'(\d{2})', col_0)
             if m:
                 current_type = m.group(1)
+                current_height = None
             i += 1
             continue
         if current_type:
@@ -188,16 +190,20 @@ def parse_rommer_spr(
             pb = _safe_float(row[8] if pd.notna(row[8]) else None)
             hc = str(hv)[0]
             lc = str(lv // 10).zfill(3)
-            if ps:
+            art_side   = f'RRS-2010-{current_type}{hc}{lc}'
+            art_bottom = f'RRS-2020-{current_type}{hc}{lc}'
+            if ps and art_side not in seen:
+                seen.add(art_side)
                 products.append({
-                    'sheet_id': sheet_id, 'article': f'RRS-2010-{current_type}{hc}{lc}',
+                    'sheet_id': sheet_id, 'article': art_side,
                     'code': None,
                     'name': f'ROMMER Радиатор стальной {current_type}/{hv}/{lv} боковое подключение Compact',
                     'price_retail': ps, 'discount_percent': discount_percent,
                 })
-            if pb:
+            if pb and art_bottom not in seen:
+                seen.add(art_bottom)
                 products.append({
-                    'sheet_id': sheet_id, 'article': f'RRS-2020-{current_type}{hc}{lc}',
+                    'sheet_id': sheet_id, 'article': art_bottom,
                     'code': None,
                     'name': f'ROMMER Радиатор стальной {current_type}/{hv}/{lv} нижнее подключение Ventil Compact',
                     'price_retail': pb, 'discount_percent': discount_percent,
