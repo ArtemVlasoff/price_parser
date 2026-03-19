@@ -31,124 +31,100 @@ def get_or_create_sheet(conn, sheet_name, default_discount=0):
             (sheet_name, default_discount)
         )
         sheet_id = cur.fetchone()[0]
-        conn.commit()
         return sheet_id
 
 def save_products_to_db(conn, products, price_date):
-    """
-    Сохраняет товары и цены с учётом периодов действия.
-    Если цена не изменилась, новая запись НЕ создаётся, а обновляется только updated_at.
-    Возвращает словарь со статистикой.
-    """
     cur = conn.cursor()
     
-    # Статистика
-    stats = {
-        'new': 0,           # новые товары
-        'changed': 0,       # изменилась цена (создана новая запись)
-        'unchanged': 0,     # цена не изменилась (обновлён updated_at)
-        'total': len(products)
-    }
+    stats = {'new': 0, 'changed': 0, 'unchanged': 0, 'total': len(products)}
     
-    # 1. Получаем ID товаров (создаём новые, если нужно)
+    # 1. Get or create products and get their IDs
+    insert_product_sql = """
+        INSERT INTO products (sheet_id, article, name)
+        VALUES %s
+        ON CONFLICT (article) DO UPDATE SET
+            sheet_id = EXCLUDED.sheet_id,
+            name = EXCLUDED.name
+        RETURNING id, article
+    """
+    product_data = [(p['sheet_id'], p['article'], p['name']) for p in products]
     product_ids = {}
-    for p in products:
-        cur.execute("""
-            INSERT INTO products (sheet_id, article, name)
-            VALUES (%s, %s, %s)
-            ON CONFLICT (article) DO UPDATE SET
-                sheet_id = EXCLUDED.sheet_id,
-                name = EXCLUDED.name
-            RETURNING id
-        """, (p['sheet_id'], p['article'], p['name']))
-        product_ids[p['article']] = cur.fetchone()[0]
+    for row in execute_values(cur, insert_product_sql, product_data, page_size=1000, fetch=True):
+        product_ids[row[1]] = row[0]
     
-    # 2. Для каждого товара определяем судьбу
+    # 2. ОДНИМ ЗАПРОСОМ получаем все текущие цены
+    cur.execute("""
+        SELECT product_id, id, price_retail 
+        FROM price_history 
+        WHERE product_id = ANY(%s) AND is_current = true
+    """, (list(product_ids.values()),))
+    
+    # Создаём словарь для быстрого доступа: {product_id: (id, price_retail)}
+    current_prices = {}
+    for product_id, history_id, price in cur.fetchall():
+        current_prices[product_id] = (history_id, price)
+    
+    # 3. Собираем данные для массовой вставки новых записей
+    new_history_records = []
+    updates = []
+    
+    # Создаём словарь для быстрого доступа к данным товаров по артикулу
+    product_data_by_article = {p['article']: p for p in products}
+    
     for article, product_id in product_ids.items():
-        # Находим текущую активную запись
-        cur.execute("""
-            SELECT id, price_retail, valid_from 
-            FROM price_history 
-            WHERE product_id = %s AND is_current = true
-        """, (product_id,))
-        current = cur.fetchone()
-        
-        # Данные из нового прайса
-        product_data = next(p for p in products if p['article'] == article)
-        new_price = product_data['price_retail']
-        new_discount = product_data['discount_percent']
+        p = product_data_by_article[article]
+        new_price = p['price_retail']
+        new_discount = p['discount_percent']
         new_price_discounted = round(new_price * (1 - new_discount / 100), 2)
         
-        if current:
-            current_id, current_price, current_valid_from = current
+        if product_id in current_prices:
+            history_id, current_price = current_prices[product_id]
             
             if current_price == new_price:
-                # Цена не изменилась - просто обновляем время подтверждения
-                cur.execute("""
-                    UPDATE price_history 
-                    SET updated_at = NOW()
-                    WHERE id = %s
-                """, (current_id,))
+                # Цена не изменилась — просто запоминаем, что нужно обновить updated_at
+                updates.append(history_id)
                 stats['unchanged'] += 1
-                logger.debug(f"⏺ Цена не изменилась: {article}")
             else:
-                # Цена изменилась - закрываем старую, создаём новую
+                # Цена изменилась — закрываем старую
                 cur.execute("""
                     UPDATE price_history 
                     SET valid_to = %s, is_current = false
                     WHERE id = %s
-                """, (price_date - timedelta(days=1), current_id))
+                """, (price_date - timedelta(days=1), history_id))
                 
-                cur.execute("""
-                    INSERT INTO price_history 
-                        (product_id, price_retail, price_discounted, discount_applied, 
-                         valid_from, valid_to, is_current, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
-                """, (
-                    product_id,
-                    new_price,
-                    new_price_discounted,
-                    new_discount,
-                    price_date,
-                    FOREVER_DATE,
-                    True
+                # И добавляем новую запись
+                new_history_records.append((
+                    product_id, new_price, new_price_discounted, new_discount,
+                    price_date, FOREVER_DATE, True
                 ))
                 stats['changed'] += 1
-                logger.debug(f"🔄 Цена изменилась: {article} {current_price} → {new_price}")
         else:
             # Новый товар
-            cur.execute("""
-                INSERT INTO price_history 
-                    (product_id, price_retail, price_discounted, discount_applied, 
-                     valid_from, valid_to, is_current, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
-            """, (
-                product_id,
-                new_price,
-                new_price_discounted,
-                new_discount,
-                price_date,
-                FOREVER_DATE,
-                True
+            new_history_records.append((
+                product_id, new_price, new_price_discounted, new_discount,
+                price_date, FOREVER_DATE, True
             ))
             stats['new'] += 1
-            logger.debug(f"🆕 Новый товар: {article}")
     
-    conn.commit()
+    # 4. Массовое обновление updated_at для неизменных цен
+    if updates:
+        cur.execute("""
+            UPDATE price_history 
+            SET updated_at = NOW()
+            WHERE id = ANY(%s)
+        """, (updates,))
     
-    # Итоговая статистика
-    logger.info(f"💾 Загрузка завершена. "
-                f"Всего: {stats['total']}, "
-                f"🆕 Новых: {stats['new']}, "
-                f"🔄 Изменений: {stats['changed']}, "
-                f"⏺ Без изменений (обновлён updated_at): {stats['unchanged']}")
+    # 5. Массовая вставка новых записей
+    if new_history_records:
+        insert_history_sql = """
+            INSERT INTO price_history 
+                (product_id, price_retail, price_discounted, discount_applied,
+                 valid_from, valid_to, is_current, created_at, updated_at)
+            VALUES %s
+        """
+        execute_values(cur, insert_history_sql, new_history_records, page_size=1000)
     
-    # Если нужно больше деталей, можно добавить:
-    if stats['new'] > 0:
-        logger.info(f"  Новые артикулы: {stats['new']}")
-    if stats['changed'] > 0:
-        logger.info(f"  Изменилось цен: {stats['changed']}")
-    
+    logger.info(f"💾 Загрузка завершена: {stats}")
     return stats
 
 def get_current_prices(conn, as_of_date=None):
