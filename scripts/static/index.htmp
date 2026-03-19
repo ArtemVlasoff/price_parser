@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Прайс-монитор</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0f0f0f;
+    --surface:  #161616;
+    --panel:    #1c1c1c;
+    --border:   #2a2a2a;
+    --border2:  #333;
+    --text:     #e8e8e8;
+    --muted:    #666;
+    --dim:      #444;
+    --accent:   #e8a020;
+    --accent2:  #c47a10;
+    --green:    #4ade80;
+    --red:      #f87171;
+    --blue:     #60a5fa;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'IBM Plex Sans', sans-serif;
+  }
+
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.5; }
+
+  /* Layout */
+  .layout { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: 48px 1fr; height: 100vh; }
+
+  /* Topbar */
+  .topbar {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .topbar-logo { font-family: var(--mono); font-size: 13px; color: var(--accent); letter-spacing: 0.08em; }
+  .topbar-sep { flex: 1; }
+  .topbar-status { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .topbar-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 20px;
+    cursor: pointer;
+    font-size: 13px; color: var(--muted);
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .nav-item:hover { color: var(--text); background: var(--panel); }
+  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: var(--panel); }
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+  .nav-section { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; color: var(--dim); padding: 16px 20px 6px; text-transform: uppercase; }
+
+  /* Main */
+  .main { overflow-y: auto; background: var(--bg); }
+  .page { display: none; padding: 28px 32px; animation: fadein 0.2s; }
+  .page.active { display: block; }
+  @keyframes fadein { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+
+  .page-header { margin-bottom: 24px; }
+  .page-title { font-family: var(--mono); font-size: 18px; font-weight: 500; color: var(--text); }
+  .page-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* Cards row */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 16px 20px; }
+  .card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .card-value { font-family: var(--mono); font-size: 22px; font-weight: 500; color: var(--accent); }
+  .card-sub { font-size: 11px; color: var(--dim); margin-top: 4px; }
+
+  /* Toolbar */
+  .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .input {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text); font-family: var(--sans); font-size: 13px;
+    padding: 7px 12px; outline: none; transition: border-color 0.15s;
+  }
+  .input:focus { border-color: var(--accent2); }
+  .input::placeholder { color: var(--dim); }
+  select.input { cursor: pointer; }
+  .btn {
+    background: var(--accent); color: #000; font-family: var(--mono); font-size: 12px; font-weight: 500;
+    border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer;
+    transition: background 0.15s; white-space: nowrap;
+  }
+  .btn:hover { background: var(--accent2); }
+  .btn:disabled { background: var(--border); color: var(--muted); cursor: default; }
+  .btn-ghost {
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    font-family: var(--mono); font-size: 12px; border-radius: 4px; padding: 7px 14px; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-ghost:hover { border-color: var(--dim); color: var(--text); }
+  .spacer { flex: 1; }
+
+  /* Table */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    font-family: var(--mono); font-size: 10px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--muted); padding: 10px 14px;
+    border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap;
+    background: var(--panel);
+  }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--panel); }
+  td { padding: 9px 14px; font-size: 13px; }
+  td.mono { font-family: var(--mono); font-size: 12px; }
+  td.price { font-family: var(--mono); font-size: 13px; color: var(--text); }
+  td.discounted { font-family: var(--mono); font-size: 13px; color: var(--accent); }
+  td.muted { color: var(--muted); font-size: 12px; }
+
+  /* Tags */
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-family: var(--mono); font-size: 11px; }
+  .tag-green { background: #0d2318; color: var(--green); }
+  .tag-red { background: #200f0f; color: var(--red); }
+  .tag-amber { background: #1f1505; color: var(--accent); }
+
+  /* Pagination */
+  .pagination { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .pagination span { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+  /* Sheets grid */
+  .sheets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+  .sheet-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+    padding: 14px 16px; cursor: pointer; transition: border-color 0.15s;
+  }
+  .sheet-card:hover { border-color: var(--accent2); }
+  .sheet-card-name { font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+  .sheet-card-meta { display: flex; justify-content: space-between; align-items: center; }
+  .sheet-card-discount { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  .sheet-card-date { font-size: 11px; color: var(--muted); }
+
+  /* Upload */
+  .upload-zone {
+    border: 2px dashed var(--border2); border-radius: 8px; padding: 48px 24px;
+    text-align: center; cursor: pointer; transition: all 0.2s;
+    background: var(--surface); margin-bottom: 20px;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: #1a1500; }
+  .upload-zone-icon { font-size: 32px; margin-bottom: 12px; }
+  .upload-zone-title { font-size: 15px; font-weight: 500; margin-bottom: 6px; }
+  .upload-zone-sub { font-size: 12px; color: var(--muted); }
+  .upload-fields { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-bottom: 16px; align-items: end; }
+  .field-group { display: flex; flex-direction: column; gap: 5px; }
+  .field-label { font-size: 11px; color: var(--muted); }
+
+  /* Progress / Log */
+  .log { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; font-family: var(--mono); font-size: 12px; line-height: 1.8; max-height: 200px; overflow-y: auto; }
+  .log-line { color: var(--muted); }
+  .log-line.ok { color: var(--green); }
+  .log-line.err { color: var(--red); }
+  .log-line.info { color: var(--accent); }
+
+  /* Compare diff */
+  .diff-up { color: var(--red); }
+  .diff-down { color: var(--green); }
+  .diff-new { color: var(--blue); }
+
+  /* History chart placeholder */
+  .history-article { font-family: var(--mono); font-size: 13px; color: var(--accent); margin-bottom: 16px; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 48px; color: var(--muted); }
+  .empty-icon { font-size: 32px; margin-bottom: 10px; }
+
+  /* Loading */
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-logo">▸ ПРАЙС-МОНИТОР</div>
+    <div class="topbar-sep"></div>
+    <div class="topbar-status" id="conn-status"><span class="topbar-dot"></span>подключено</div>
+  </header>
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="nav-section">Данные</div>
+    <div class="nav-item active" data-page="prices">
+      <span class="nav-icon">▤</span> Текущие цены
+    </div>
+    <div class="nav-item" data-page="history">
+      <span class="nav-icon">◷</span> История цен
+    </div>
+    <div class="nav-item" data-page="compare">
+      <span class="nav-icon">⇄</span> Сравнение дат
+    </div>
+    <div class="nav-section">Управление</div>
+    <div class="nav-item" data-page="sheets">
+      <span class="nav-icon">◈</span> Поставщики
+    </div>
+    <div class="nav-item" data-page="upload">
+      <span class="nav-icon">↑</span> Загрузить прайс
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- ── Текущие цены ── -->
+    <section class="page active" id="page-prices">
+      <div class="page-header">
+        <div class="page-title">Текущие цены</div>
+        <div class="page-sub" id="prices-updated">Загрузка...</div>
+      </div>
+      <div class="cards" id="prices-cards"></div>
+      <div class="toolbar">
+        <input class="input" id="search-input" placeholder="Поиск по артикулу или названию..." style="width:280px" oninput="debouncedSearch()">
+        <select class="input" id="sheet-filter" onchange="loadPrices()" style="width:200px">
+          <option value="">Все поставщики</option>
+        </select>
+        <div class="spacer"></div>
+        <span id="prices-count" style="font-family:var(--mono);font-size:12px;color:var(--muted)"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Артикул</th>
+              <th>Наименование</th>
+              <th>Поставщик</th>
+              <th>Цена РРЦ</th>
+              <th>Цена со скидкой</th>
+              <th>Скидка</th>
+              <th>С даты</th>
+            </tr>
+          </thead>
+          <tbody id="prices-tbody"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <button class="btn-ghost" id="btn-prev" onclick="changePage(-1)">← Назад</button>
+        <span id="page-info"></span>
+        <button class="btn-ghost" id="btn-next" onclick="changePage(1)">Вперёд →</button>
+      </div>
+    </section>
+
+    <!-- ── История цен ── -->
+    <section class="page" id="page-history">
+      <div class="page-header">
+        <div class="page-title">История цен</div>
+        <div class="page-sub">Изменения по конкретному артикулу</div>
+      </div>
+      <div class="toolbar">
+        <input class="input" id="history-article-input" placeholder="Введите артикул, например RRS-2010-11505..." style="width:380px">
+        <button class="btn" onclick="loadHistory()">Показать</button>
+      </div>
+      <div id="history-content">
+        <div class="empty"><div class="empty-icon">◷</div>Введите артикул для просмотра истории</div>
+      </div>
+    </section>
+
+    <!-- ── Сравнение дат ── -->
+    <section class="page" id="page-compare">
+      <div class="page-header">
+        <div class="page-title">Сравнение дат</div>
+        <div class="page-sub">Посмотрите какие цены изменились между двумя датами</div>
+      </div>
+      <div class="toolbar">
+        <div class="field-group">
+          <label class="field-label">ДАТА А (было)</label>
+          <input class="input" type="date" id="compare-from">
+        </div>
+        <div class="field-group">
+          <label class="field-label">ДАТА Б (стало)</label>
+          <input class="input" type="date" id="compare-to">
+        </div>
+        <select class="input" id="compare-sheet" style="align-self:flex-end">
+          <option value="">Все поставщики</option>
+        </select>
+        <button class="btn" style="align-self:flex-end" onclick="loadCompare()">Сравнить</button>
+      </div>
+      <div id="compare-content">
+        <div class="empty"><div class="empty-icon">⇄</div>Выберите даты для сравнения</div>
+      </div>
+    </section>
+
+    <!-- ── Поставщики ── -->
+    <section class="page" id="page-sheets">
+      <div class="page-header">
+        <div class="page-title">Поставщики</div>
+        <div class="page-sub">Все листы с данными о последней загрузке</div>
+      </div>
+      <div class="sheets-grid" id="sheets-grid">
+        <div class="empty"><div class="spinner"></div></div>
+      </div>
+    </section>
+
+    <!-- ── Загрузить прайс ── -->
+    <section class="page" id="page-upload">
+      <div class="page-header">
+        <div class="page-title">Загрузить прайс</div>
+        <div class="page-sub">Загрузите .xlsx файл для обновления цен в базе</div>
+      </div>
+
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+        <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none" onchange="onFileSelected(this)">
+        <div class="upload-zone-icon">↑</div>
+        <div class="upload-zone-title" id="upload-zone-title">Перетащите файл или нажмите для выбора</div>
+        <div class="upload-zone-sub">.xlsx / .xls — прайс с листами поставщиков</div>
+      </div>
+
+      <div class="upload-fields">
+        <div class="field-group">
+          <label class="field-label">ЛИСТ В EXCEL</label>
+          <input class="input" id="upload-sheet" placeholder="Rommer СПР (Россия)" value="Rommer СПР (Россия)">
+        </div>
+        <div class="field-group">
+          <label class="field-label">СКИДКА %</label>
+          <input class="input" id="upload-discount" type="number" placeholder="62" value="62" min="0" max="99">
+        </div>
+        <button class="btn" id="upload-btn" onclick="uploadFile()" disabled>Загрузить</button>
+      </div>
+
+      <div class="field-group" style="margin-bottom:16px">
+        <label class="field-label">ДАТА ПРАЙСА (опционально — автоопределение из имени файла)</label>
+        <input class="input" id="upload-date" type="date" style="width:200px">
+      </div>
+
+      <div id="upload-log" style="display:none">
+        <div class="field-label" style="margin-bottom:6px">ЛОГ ЗАГРУЗКИ</div>
+        <div class="log" id="log-content"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────────────────
+// Если фронтенд открывается с того же домена — relative URL. 
+// Если отдельно — замени на: const API = 'https://your-app.onrender.com'
+const API = '';
+
+// ── State ───────────────────────────────────────────────────────────────────
+let currentPage = 0;
+const PAGE_SIZE = 100;
+let totalItems = 0;
+let sheets = [];
+let searchTimer = null;
+
+// ── Navigation ───────────────────────────────────────────────────────────────
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById('page-' + item.dataset.page).classList.add('active');
+    if (item.dataset.page === 'sheets') loadSheets();
+  });
+});
+
+// ── API helper ───────────────────────────────────────────────────────────────
+async function apiFetch(path) {
+  const res = await fetch(API + path);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({detail: res.statusText}));
+    throw new Error(err.detail || res.statusText);
+  }
+  return res.json();
+}
+
+// ── Format helpers ────────────────────────────────────────────────────────────
+function fmtPrice(n) {
+  return n == null ? '—' : new Intl.NumberFormat('ru-RU', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(n) + ' ₽';
+}
+function fmtDate(s) {
+  if (!s) return '—';
+  return new Date(s).toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric'});
+}
+function fmtDatetime(s) {
+  if (!s) return '—';
+  return new Date(s).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
+}
+
+// ── Sheets ────────────────────────────────────────────────────────────────────
+async function initSheets() {
+  try {
+    sheets = await apiFetch('/api/sheets');
+    
+    // Populate selects
+    [document.getElementById('sheet-filter'), document.getElementById('compare-sheet')].forEach(sel => {
+      const cur = sel.value;
+      while (sel.options.length > 1) sel.remove(1);
+      sheets.forEach(s => {
+        const opt = new Option(s.sheet_name, s.id);
+        sel.appendChild(opt);
+      });
+      sel.value = cur;
+    });
+
+    // Stats cards
+    const total = sheets.length;
+    const active = sheets.filter(s => s.is_active !== false).length;
+    const lastUp = sheets.map(s => s.last_updated).filter(Boolean).sort().pop();
+    document.getElementById('prices-cards').innerHTML = `
+      <div class="card">
+        <div class="card-label">Поставщиков</div>
+        <div class="card-value">${total}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Активных</div>
+        <div class="card-value">${active}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Последнее обновление</div>
+        <div class="card-value" style="font-size:15px">${lastUp ? fmtDatetime(lastUp) : '—'}</div>
+      </div>
+    `;
+    if (lastUp) {
+      document.getElementById('prices-updated').textContent = 'Актуально на ' + fmtDatetime(lastUp);
+    }
+  } catch(e) {
+    document.getElementById('conn-status').innerHTML = '<span style="color:var(--red)">● ошибка подключения</span>';
+  }
+}
+
+function loadSheets() {
+  const grid = document.getElementById('sheets-grid');
+  if (!sheets.length) { grid.innerHTML = '<div class="empty"><div class="spinner"></div></div>'; return; }
+  grid.innerHTML = sheets.map(s => `
+    <div class="sheet-card" onclick="openSheetPrices(${s.id})">
+      <div class="sheet-card-name">${s.sheet_name}</div>
+      <div class="sheet-card-meta">
+        <div class="sheet-card-discount">−${s.discount_percent ?? 0}%</div>
+        <div class="sheet-card-date">${s.last_updated ? fmtDatetime(s.last_updated) : 'нет данных'}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openSheetPrices(sheetId) {
+  document.getElementById('sheet-filter').value = sheetId;
+  document.querySelector('[data-page="prices"]').click();
+  currentPage = 0;
+  loadPrices();
+}
+
+// ── Prices ────────────────────────────────────────────────────────────────────
+async function loadPrices() {
+  const search = document.getElementById('search-input').value.trim();
+  const sheetId = document.getElementById('sheet-filter').value;
+  const offset = currentPage * PAGE_SIZE;
+
+  let url = `/api/prices?limit=${PAGE_SIZE}&offset=${offset}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+  if (sheetId) url += `&sheet_id=${sheetId}`;
+
+  const tbody = document.getElementById('prices-tbody');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)"><div class="spinner"></div></td></tr>';
+
+  try {
+    const data = await apiFetch(url);
+    totalItems = data.total;
+
+    document.getElementById('prices-count').textContent = `${totalItems.toLocaleString('ru-RU')} позиций`;
+
+    if (!data.items.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted)">Ничего не найдено</td></tr>';
+    } else {
+      tbody.innerHTML = data.items.map(p => `
+        <tr>
+          <td class="mono" style="cursor:pointer;color:var(--blue)" onclick="openHistory('${p.article}')">${p.article}</td>
+          <td style="max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${p.name}">${p.name}</td>
+          <td class="muted">${p.sheet_name}</td>
+          <td class="price">${fmtPrice(p.price_retail)}</td>
+          <td class="discounted">${fmtPrice(p.price_discounted)}</td>
+          <td class="mono" style="color:var(--muted)">−${p.discount_applied}%</td>
+          <td class="muted">${fmtDate(p.valid_from)}</td>
+        </tr>
+      `).join('');
+    }
+
+    updatePagination();
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--red)">${e.message}</td></tr>`;
+  }
+}
+
+function updatePagination() {
+  const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+  document.getElementById('page-info').textContent = totalPages > 1 ? `стр. ${currentPage + 1} из ${totalPages}` : '';
+  document.getElementById('btn-prev').disabled = currentPage === 0;
+  document.getElementById('btn-next').disabled = (currentPage + 1) >= totalPages;
+}
+
+function changePage(dir) {
+  currentPage += dir;
+  loadPrices();
+  document.getElementById('page-prices').scrollTo(0, 0);
+}
+
+function debouncedSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { currentPage = 0; loadPrices(); }, 350);
+}
+
+// ── History ───────────────────────────────────────────────────────────────────
+function openHistory(article) {
+  document.querySelector('[data-page="history"]').click();
+  document.getElementById('history-article-input').value = article;
+  loadHistory();
+}
+
+async function loadHistory() {
+  const article = document.getElementById('history-article-input').value.trim();
+  if (!article) return;
+
+  const container = document.getElementById('history-content');
+  container.innerHTML = '<div style="padding:24px;text-align:center"><div class="spinner"></div></div>';
+
+  try {
+    const data = await apiFetch(`/api/prices/history?article=${encodeURIComponent(article)}`);
+
+    if (!data.length) {
+      container.innerHTML = '<div class="empty">Нет данных по этому артикулу</div>';
+      return;
+    }
+
+    const rows = data.map((h, i) => {
+      const prev = data[i + 1];
+      let diff = '';
+      if (prev && h.price_retail !== prev.price_retail) {
+        const pct = (((h.price_retail - prev.price_retail) / prev.price_retail) * 100).toFixed(1);
+        diff = h.price_retail > prev.price_retail
+          ? `<span class="diff-up">↑ ${pct}%</span>`
+          : `<span class="diff-down">↓ ${Math.abs(pct)}%</span>`;
+      }
+      return `
+        <tr>
+          <td class="mono">${fmtDate(h.valid_from)}</td>
+          <td class="mono">${h.valid_to ? fmtDate(h.valid_to) : '∞ сейчас'}</td>
+          <td class="price">${fmtPrice(h.price_retail)}</td>
+          <td class="discounted">${fmtPrice(h.price_discounted)}</td>
+          <td class="mono" style="color:var(--muted)">−${h.discount_applied}%</td>
+          <td>${diff}</td>
+          <td>${h.is_current ? '<span class="tag tag-green">актуально</span>' : '<span class="tag" style="background:var(--panel);color:var(--muted)">истёк</span>'}</td>
+        </tr>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="history-article">Артикул: ${article}</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>С даты</th><th>По дату</th>
+              <th>Цена РРЦ</th><th>Цена со скидкой</th>
+              <th>Скидка</th><th>Изменение</th><th>Статус</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  } catch(e) {
+    container.innerHTML = `<div class="empty" style="color:var(--red)">${e.message}</div>`;
+  }
+}
+
+// ── Compare ───────────────────────────────────────────────────────────────────
+async function loadCompare() {
+  const from = document.getElementById('compare-from').value;
+  const to = document.getElementById('compare-to').value;
+  const sheetId = document.getElementById('compare-sheet').value;
+  const container = document.getElementById('compare-content');
+
+  if (!from || !to) {
+    container.innerHTML = '<div class="empty" style="color:var(--red)">Укажите обе даты</div>';
+    return;
+  }
+
+  container.innerHTML = '<div style="padding:24px;text-align:center"><div class="spinner"></div></div>';
+
+  try {
+    let url = `/api/prices/compare?date_from=${from}&date_to=${to}`;
+    if (sheetId) url += `&sheet_id=${sheetId}`;
+    const data = await apiFetch(url);
+
+    if (!data.items.length) {
+      container.innerHTML = '<div class="empty"><div class="empty-icon">✓</div>Цены не изменились между выбранными датами</div>';
+      return;
+    }
+
+    const changeTag = c => ({
+      'new': '<span class="tag tag-green">Новый</span>',
+      'removed': '<span class="tag tag-red">Снят</span>',
+      'changed': '<span class="tag tag-amber">Изменён</span>',
+    }[c] || c);
+
+    const rows = data.items.map(d => {
+      const diff = d.price_from && d.price_to
+        ? (d.price_to - d.price_from)
+        : null;
+      const diffEl = diff == null ? '' : diff > 0
+        ? `<span class="diff-up">+${fmtPrice(diff)}</span>`
+        : `<span class="diff-down">${fmtPrice(diff)}</span>`;
+
+      return `<tr>
+        <td class="mono" style="color:var(--blue);cursor:pointer" onclick="openHistory('${d.article}')">${d.article}</td>
+        <td style="max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${d.name}">${d.name}</td>
+        <td class="muted">${d.sheet_name}</td>
+        <td class="price">${d.price_from ? fmtPrice(d.price_from) : '—'}</td>
+        <td class="price">${d.price_to ? fmtPrice(d.price_to) : '—'}</td>
+        <td class="mono">${diffEl}</td>
+        <td>${changeTag(d.change)}</td>
+      </tr>`;
+    }).join('');
+
+    const changed = data.items.filter(i => i.change === 'changed').length;
+    const added = data.items.filter(i => i.change === 'new').length;
+    const removed = data.items.filter(i => i.change === 'removed').length;
+
+    container.innerHTML = `
+      <div class="cards" style="margin-bottom:16px">
+        <div class="card"><div class="card-label">Изменено</div><div class="card-value" style="color:var(--accent)">${changed}</div></div>
+        <div class="card"><div class="card-label">Добавлено</div><div class="card-value" style="color:var(--green)">${added}</div></div>
+        <div class="card"><div class="card-label">Снято</div><div class="card-value" style="color:var(--red)">${removed}</div></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Артикул</th><th>Наименование</th><th>Поставщик</th>
+              <th>Было (${fmtDate(from)})</th><th>Стало (${fmtDate(to)})</th>
+              <th>Разница</th><th>Статус</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  } catch(e) {
+    container.innerHTML = `<div class="empty" style="color:var(--red)">${e.message}</div>`;
+  }
+}
+
+// ── Upload ────────────────────────────────────────────────────────────────────
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) setFile(f);
+});
+
+let selectedFile = null;
+function setFile(f) {
+  selectedFile = f;
+  document.getElementById('upload-zone-title').textContent = `✓ ${f.name}`;
+  document.getElementById('upload-btn').disabled = false;
+}
+function onFileSelected(input) {
+  if (input.files[0]) setFile(input.files[0]);
+}
+
+function log(text, type = '') {
+  const el = document.getElementById('log-content');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + type;
+  line.textContent = new Date().toLocaleTimeString('ru-RU') + '  ' + text;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+async function uploadFile() {
+  if (!selectedFile) return;
+
+  const sheetName = document.getElementById('upload-sheet').value.trim();
+  const discount = document.getElementById('upload-discount').value;
+  const dateVal = document.getElementById('upload-date').value;
+
+  if (!sheetName || !discount) {
+    alert('Укажите лист и скидку'); return;
+  }
+
+  document.getElementById('upload-log').style.display = 'block';
+  document.getElementById('log-content').innerHTML = '';
+  document.getElementById('upload-btn').disabled = true;
+
+  log('Отправка файла на сервер...', 'info');
+
+  const form = new FormData();
+  form.append('file', selectedFile);
+
+  let url = `${API}/api/upload?sheet_name=${encodeURIComponent(sheetName)}&discount_percent=${discount}`;
+  if (dateVal) url += `&price_date=${dateVal}`;
+
+  try {
+    const res = await fetch(url, { method: 'POST', body: form });
+    const data = await res.json();
+
+    if (!res.ok) {
+      log('Ошибка: ' + (data.detail || res.statusText), 'err');
+      return;
+    }
+
+    log(`Файл: ${data.filename}`, 'ok');
+    log(`Лист: ${data.sheet_name}`, 'ok');
+    log(`Дата прайса: ${fmtDate(data.price_date)}`, 'ok');
+    log(`Новых товаров: ${data.stats.new}`, 'ok');
+    log(`Изменилось цен: ${data.stats.changed}`, 'ok');
+    log(`Без изменений: ${data.stats.unchanged}`, 'ok');
+    log(`Всего позиций: ${data.stats.total}`, 'ok');
+    log('✓ Загрузка завершена успешно', 'ok');
+
+    // Обновляем данные
+    await initSheets();
+    currentPage = 0;
+    await loadPrices();
+
+  } catch(e) {
+    log('Сетевая ошибка: ' + e.message, 'err');
+  } finally {
+    document.getElementById('upload-btn').disabled = false;
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+// Предустановим сегодняшние даты для сравнения
+(function setDefaultDates() {
+  const today = new Date().toISOString().split('T')[0];
+  const monthAgo = new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0];
+  document.getElementById('compare-to').value = today;
+  document.getElementById('compare-from').value = monthAgo;
+})();
+
+async function init() {
+  await initSheets();
+  loadPrices();
+}
+
+init();
+</script>
+</body>
+</html>
