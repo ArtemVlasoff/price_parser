@@ -229,6 +229,16 @@ def main():
         logger.info("Сохранение товаров в БД...")
         save_products_to_db(conn, products, price_date)
         logger.info("✅ Данные успешно сохранены!")
+        # После вызова save_products_to_db
+        stats = save_products_to_db(conn, products, price_date)
+
+        # Можно добавить детализацию по категориям, если нужно
+        if stats['new'] > 0:
+            logger.info(f"  Новые артикулы: {stats['new']}")
+        if stats['changed'] > 0:
+            logger.info(f"  Изменилось цен: {stats['changed']}")
+        if stats['unchanged'] > 0:
+            logger.info(f"  Без изменений: {stats['unchanged']}")
         logger.info("=" * 50)
         
     except Exception as e:

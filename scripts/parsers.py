@@ -28,7 +28,6 @@ def parse_rommer_sheet(file_path, sheet_name, sheet_id, discount_percent):
             match = re.search(r'(\d{2})', col_0)
             if match:
                 current_type = match.group(1)
-                logger.debug(f"Найден тип: {current_type} на строке {i}")
             i += 1
             continue
         
