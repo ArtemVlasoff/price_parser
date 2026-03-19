@@ -18,24 +18,50 @@ def get_connection():
         raise
 
 
-# ── Sheets ────────────────────────────────────────────────────────────────────
+# ── Suppliers ─────────────────────────────────────────────────────────────────
 
-def get_or_create_sheet(conn, sheet_name: str, default_discount: float = 0) -> int:
-    """Возвращает ID листа, создаёт если нет. БЕЗ коммита."""
+def get_all_suppliers(conn) -> list[dict]:
+    """Все поставщики с агрегированной информацией по листам."""
     cur = conn.cursor()
-    cur.execute("SELECT id FROM sheets WHERE sheet_name = %s", (sheet_name,))
+    cur.execute("""
+        SELECT
+            sup.id,
+            sup.name,
+            sup.supplier_type,
+            sup.is_active,
+            COUNT(DISTINCT s.id)                                        AS sheets_count,
+            MAX(ph.updated_at)                                          AS last_updated,
+            COUNT(DISTINCT p.id) FILTER (WHERE ph.is_current = true)   AS product_count
+        FROM suppliers sup
+        LEFT JOIN sheets s   ON s.supplier_id = sup.id
+        LEFT JOIN products p ON p.sheet_id = s.id
+        LEFT JOIN price_history ph ON ph.product_id = p.id
+        GROUP BY sup.id, sup.name, sup.supplier_type, sup.is_active
+        ORDER BY sup.supplier_type DESC, sup.name
+    """)
+    cols = ['id', 'name', 'supplier_type', 'is_active',
+            'sheets_count', 'last_updated', 'product_count']
+    return [dict(zip(cols, row)) for row in cur.fetchall()]
+
+
+def get_or_create_supplier(conn, name: str, supplier_type: str = 'flat') -> int:
+    """Возвращает id поставщика, создаёт если нет. БЕЗ коммита."""
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM suppliers WHERE name = %s", (name,))
     row = cur.fetchone()
     if row:
         return row[0]
     cur.execute(
-        "INSERT INTO sheets (sheet_name, discount_percent) VALUES (%s, %s) RETURNING id",
-        (sheet_name, default_discount)
+        "INSERT INTO suppliers (name, supplier_type) VALUES (%s, %s) RETURNING id",
+        (name, supplier_type)
     )
     return cur.fetchone()[0]
 
 
-def get_all_sheets(conn) -> list[dict]:
-    """Все листы со скидкой и датой последней загрузки."""
+# ── Sheets ────────────────────────────────────────────────────────────────────
+
+def get_sheets_by_supplier(conn, supplier_id: int) -> list[dict]:
+    """Листы конкретного поставщика."""
     cur = conn.cursor()
     cur.execute("""
         SELECT
@@ -43,20 +69,47 @@ def get_all_sheets(conn) -> list[dict]:
             s.sheet_name,
             s.discount_percent,
             s.is_active,
-            MAX(ph.updated_at) AS last_updated,
-            COUNT(DISTINCT p.id) FILTER (WHERE ph.is_current = true) AS product_count
+            MAX(ph.updated_at)                                         AS last_updated,
+            COUNT(DISTINCT p.id) FILTER (WHERE ph.is_current = true)  AS product_count
         FROM sheets s
         LEFT JOIN products p ON p.sheet_id = s.id
         LEFT JOIN price_history ph ON ph.product_id = p.id
         GROUP BY s.id, s.sheet_name, s.discount_percent, s.is_active
+        HAVING s.supplier_id = %s
         ORDER BY s.sheet_name
-    """)
+    """, (supplier_id,))
     cols = ['id', 'sheet_name', 'discount_percent', 'is_active', 'last_updated', 'product_count']
     return [dict(zip(cols, row)) for row in cur.fetchall()]
 
 
+def get_all_sheets(conn) -> list[dict]:
+    """Все листы со supplier_id и агрегацией."""
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT
+            s.id,
+            s.sheet_name,
+            s.discount_percent,
+            s.is_active,
+            s.supplier_id,
+            sup.name        AS supplier_name,
+            sup.supplier_type,
+            MAX(ph.updated_at)                                         AS last_updated,
+            COUNT(DISTINCT p.id) FILTER (WHERE ph.is_current = true)  AS product_count
+        FROM sheets s
+        JOIN suppliers sup ON sup.id = s.supplier_id
+        LEFT JOIN products p ON p.sheet_id = s.id
+        LEFT JOIN price_history ph ON ph.product_id = p.id
+        GROUP BY s.id, s.sheet_name, s.discount_percent, s.is_active,
+                 s.supplier_id, sup.name, sup.supplier_type
+        ORDER BY sup.name, s.sheet_name
+    """)
+    cols = ['id', 'sheet_name', 'discount_percent', 'is_active', 'supplier_id',
+            'supplier_name', 'supplier_type', 'last_updated', 'product_count']
+    return [dict(zip(cols, row)) for row in cur.fetchall()]
+
+
 def update_sheet_discount(conn, sheet_id: int, discount_percent: float) -> bool:
-    """Обновляет скидку листа. Возвращает True если лист найден."""
     cur = conn.cursor()
     cur.execute(
         "UPDATE sheets SET discount_percent = %s WHERE id = %s",
@@ -65,22 +118,56 @@ def update_sheet_discount(conn, sheet_id: int, discount_percent: float) -> bool:
     return cur.rowcount > 0
 
 
-def ensure_sheet_exists(conn, sheet_name: str, discount: float) -> tuple[int, float]:
+def update_sheets_discounts_bulk(conn, discounts: dict[int, float]) -> int:
+    """Массовое обновление скидок. discounts = {sheet_id: discount_percent}"""
+    cur = conn.cursor()
+    updated = 0
+    for sheet_id, disc in discounts.items():
+        cur.execute(
+            "UPDATE sheets SET discount_percent = %s WHERE id = %s",
+            (disc, sheet_id)
+        )
+        updated += cur.rowcount
+    return updated
+
+
+def get_or_create_sheet(conn, sheet_name: str, supplier_id: int,
+                        default_discount: float = 0) -> int:
+    """Возвращает ID листа, создаёт если нет. БЕЗ коммита."""
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM sheets WHERE sheet_name = %s AND supplier_id = %s",
+                (sheet_name, supplier_id))
+    row = cur.fetchone()
+    if row:
+        return row[0]
+    cur.execute(
+        "INSERT INTO sheets (sheet_name, supplier_id, discount_percent) "
+        "VALUES (%s, %s, %s) RETURNING id",
+        (sheet_name, supplier_id, default_discount)
+    )
+    return cur.fetchone()[0]
+
+
+def ensure_sheet_exists(conn, sheet_name: str, supplier_id: int,
+                        discount: float = 0.0) -> tuple[int, float]:
     """
     Возвращает (sheet_id, актуальная_скидка).
-    Если лист уже есть — берёт скидку из БД (там могла быть выставлена руками).
+    Если лист уже есть — берёт скидку из БД.
     Если нет — создаёт с переданной скидкой.
     """
     cur = conn.cursor()
     cur.execute(
-        "SELECT id, discount_percent FROM sheets WHERE sheet_name = %s", (sheet_name,)
+        "SELECT id, discount_percent FROM sheets "
+        "WHERE sheet_name = %s AND supplier_id = %s",
+        (sheet_name, supplier_id)
     )
     row = cur.fetchone()
     if row:
         return row[0], float(row[1]) if row[1] is not None else discount
     cur.execute(
-        "INSERT INTO sheets (sheet_name, discount_percent) VALUES (%s, %s) RETURNING id",
-        (sheet_name, discount)
+        "INSERT INTO sheets (sheet_name, supplier_id, discount_percent) "
+        "VALUES (%s, %s, %s) RETURNING id",
+        (sheet_name, supplier_id, discount)
     )
     return cur.fetchone()[0], discount
 
@@ -93,16 +180,13 @@ def save_products_to_db(conn, products: list[dict], price_date: date) -> dict:
 
     products — список dict с ключами:
         sheet_id, article, name, price_retail, discount_percent
-        code (опционально — supplier code)
+        code             (опционально)
         price_discounted (опционально — готовая цена из прайса)
-
-    Если price_discounted передан — используем его.
-    Иначе считаем: price_retail * (1 - discount_percent / 100).
     """
     cur = conn.cursor()
     stats = {'new': 0, 'changed': 0, 'unchanged': 0, 'total': len(products)}
 
-    # 1. Upsert товаров — теперь включаем поле code
+    # 1. Upsert товаров
     insert_product_sql = """
         INSERT INTO products (sheet_id, article, code, name)
         VALUES %s
@@ -117,7 +201,8 @@ def save_products_to_db(conn, products: list[dict], price_date: date) -> dict:
         for p in products
     ]
     product_ids = {}
-    for row in execute_values(cur, insert_product_sql, product_data, page_size=1000, fetch=True):
+    for row in execute_values(cur, insert_product_sql, product_data,
+                              page_size=1000, fetch=True):
         product_ids[row[1]] = row[0]
 
     # 2. Текущие цены одним запросом
@@ -138,7 +223,6 @@ def save_products_to_db(conn, products: list[dict], price_date: date) -> dict:
         new_price    = p['price_retail']
         new_discount = p.get('discount_percent', 0) or 0
 
-        # Цена со скидкой: из прайса или вычисляем
         new_price_discounted = p.get('price_discounted')
         if new_price_discounted is None:
             new_price_discounted = round(new_price * (1 - new_discount / 100), 2)
@@ -178,12 +262,13 @@ def save_products_to_db(conn, products: list[dict], price_date: date) -> dict:
         execute_values(cur, """
             INSERT INTO price_history
                 (product_id, price_retail, price_discounted, discount_applied,
-                 valid_from, valid_to, is_current)
+                 valid_from, valid_to, is_current, created_at, updated_at)
             VALUES %s
         """, new_records, page_size=1000)
 
     logger.info(
         f"💾 Сохранено: всего={stats['total']} "
-        f"новых={stats['new']} изменений={stats['changed']} без_изменений={stats['unchanged']}"
+        f"новых={stats['new']} изменений={stats['changed']} "
+        f"без_изменений={stats['unchanged']}"
     )
     return stats

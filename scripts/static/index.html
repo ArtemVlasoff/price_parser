@@ -7,319 +7,343 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0f0f0f; --surface: #161616; --panel: #1c1c1c;
-    --border: #2a2a2a; --border2: #333; --text: #e8e8e8;
-    --muted: #666; --dim: #444; --accent: #e8a020; --accent2: #c47a10;
-    --green: #4ade80; --red: #f87171; --blue: #60a5fa; --yellow: #fbbf24;
-    --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif;
-  }
-  html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5}
-  .layout{display:grid;grid-template-columns:220px 1fr;grid-template-rows:48px 1fr;height:100vh}
-  .topbar{grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:0 24px;border-bottom:1px solid var(--border);background:var(--surface)}
-  .topbar-logo{font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:.08em}
-  .topbar-sep{flex:1}
-  .topbar-status{font-family:var(--mono);font-size:11px;color:var(--muted)}
-  .topbar-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 2s infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-  .sidebar{background:var(--surface);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column;gap:2px}
-  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;font-size:13px;color:var(--muted);border-left:2px solid transparent;transition:all .15s;user-select:none}
-  .nav-item:hover{color:var(--text);background:var(--panel)}
-  .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--panel)}
-  .nav-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
-  .nav-section{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--dim);padding:16px 20px 6px;text-transform:uppercase}
-  .main{overflow-y:auto;background:var(--bg)}
-  .page{display:none;padding:28px 32px;animation:fadein .2s}
-  .page.active{display:block}
-  @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-  .page-title{font-family:var(--mono);font-size:18px;font-weight:500}
-  .page-sub{font-size:12px;color:var(--muted);margin-top:4px}
-  .page-header{margin-bottom:24px}
-  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:24px}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px 20px}
-  .card-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
-  .card-value{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--accent)}
-  .toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
-  .input{background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--sans);font-size:13px;padding:7px 12px;outline:none;transition:border-color .15s}
-  .input:focus{border-color:var(--accent2)}
-  .input::placeholder{color:var(--dim)}
-  select.input{cursor:pointer}
-  .btn{background:var(--accent);color:#000;font-family:var(--mono);font-size:12px;font-weight:500;border:none;border-radius:4px;padding:8px 16px;cursor:pointer;transition:background .15s;white-space:nowrap}
-  .btn:hover{background:var(--accent2)}
-  .btn:disabled{background:var(--border);color:var(--muted);cursor:default}
-  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);font-family:var(--mono);font-size:12px;border-radius:4px;padding:7px 14px;cursor:pointer;transition:all .15s}
-  .btn-ghost:hover{border-color:var(--dim);color:var(--text)}
-  .btn-sm{padding:4px 10px;font-size:11px}
-  .btn-danger{background:transparent;color:var(--red);border:1px solid #3a1515;font-family:var(--mono);font-size:11px;border-radius:4px;padding:4px 10px;cursor:pointer;transition:all .15s}
-  .btn-danger:hover{background:#1a0a0a}
-  .spacer{flex:1}
-  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden}
-  table{width:100%;border-collapse:collapse}
-  thead th{font-family:var(--mono);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;background:var(--panel)}
-  tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
-  tbody tr:last-child{border-bottom:none}
-  tbody tr:hover{background:var(--panel)}
-  td{padding:9px 14px;font-size:13px}
-  td.mono{font-family:var(--mono);font-size:12px}
-  td.price{font-family:var(--mono)}
-  td.discounted{font-family:var(--mono);color:var(--accent)}
-  td.muted{color:var(--muted);font-size:12px}
-  .tag{display:inline-block;padding:2px 8px;border-radius:3px;font-family:var(--mono);font-size:11px}
-  .tag-green{background:#0d2318;color:var(--green)}
-  .tag-red{background:#200f0f;color:var(--red)}
-  .tag-amber{background:#1f1505;color:var(--accent)}
-  .tag-blue{background:#0a1628;color:var(--blue)}
-  .pagination{display:flex;align-items:center;gap:8px;margin-top:12px}
-  .pagination span{font-family:var(--mono);font-size:12px;color:var(--muted)}
-  .empty{text-align:center;padding:48px;color:var(--muted)}
-  .empty-icon{font-size:32px;margin-bottom:10px}
-  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f0f;--surface:#161616;--panel:#1c1c1c;
+  --border:#2a2a2a;--border2:#333;--text:#e8e8e8;
+  --muted:#666;--dim:#444;--accent:#e8a020;--accent2:#c47a10;
+  --green:#4ade80;--red:#f87171;--blue:#60a5fa;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5}
+.layout{display:grid;grid-template-columns:220px 1fr;grid-template-rows:48px 1fr;height:100vh}
+.topbar{grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:0 24px;border-bottom:1px solid var(--border);background:var(--surface)}
+.topbar-logo{font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:.08em}
+.topbar-sep{flex:1}
+.topbar-status{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;font-size:13px;color:var(--muted);border-left:2px solid transparent;transition:all .15s;user-select:none}
+.nav-item:hover{color:var(--text);background:var(--panel)}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--panel)}
+.nav-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.nav-section{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--dim);padding:16px 20px 6px;text-transform:uppercase}
+.main{overflow-y:auto;background:var(--bg)}
+.page{display:none;padding:28px 32px;animation:fadein .2s}
+.page.active{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.page-title{font-family:var(--mono);font-size:18px;font-weight:500}
+.page-sub{font-size:12px;color:var(--muted);margin-top:4px}
+.page-header{margin-bottom:24px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px 20px}
+.card-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.card-value{font-family:var(--mono);font-size:20px;font-weight:500;color:var(--accent)}
+.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.input{background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--sans);font-size:13px;padding:7px 12px;outline:none;transition:border-color .15s}
+.input:focus{border-color:var(--accent2)}
+.input::placeholder{color:var(--dim)}
+select.input{cursor:pointer}
+.btn{background:var(--accent);color:#000;font-family:var(--mono);font-size:12px;font-weight:500;border:none;border-radius:4px;padding:8px 16px;cursor:pointer;transition:background .15s;white-space:nowrap}
+.btn:hover{background:var(--accent2)}
+.btn:disabled{background:var(--border);color:var(--muted);cursor:default}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);font-family:var(--mono);font-size:12px;border-radius:4px;padding:7px 14px;cursor:pointer;transition:all .15s}
+.btn-ghost:hover{border-color:var(--dim);color:var(--text)}
+.btn-sm{padding:4px 10px;font-size:11px}
+.spacer{flex:1}
 
-  /* Upload */
-  .upload-zone{border:2px dashed var(--border2);border-radius:8px;padding:40px 24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);margin-bottom:20px}
-  .upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:#1a1500}
-  .upload-zone-icon{font-size:28px;margin-bottom:10px}
-  .upload-zone-title{font-size:14px;font-weight:500;margin-bottom:4px}
-  .upload-zone-sub{font-size:12px;color:var(--muted)}
-  .field-group{display:flex;flex-direction:column;gap:5px}
-  .field-label{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
-  .log{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.8;max-height:220px;overflow-y:auto}
-  .log-line{color:var(--muted)}
-  .log-line.ok{color:var(--green)}
-  .log-line.err{color:var(--red)}
-  .log-line.info{color:var(--accent)}
+/* Table */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead th{font-family:var(--mono);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--border);text-align:left;background:var(--panel);white-space:nowrap;user-select:none}
+thead th.sortable{cursor:pointer}
+thead th.sortable:hover{color:var(--text)}
+thead th .sort-icon{display:inline-block;margin-left:4px;opacity:.4;font-style:normal}
+thead th.sort-asc .sort-icon::after{content:'↑';opacity:1}
+thead th.sort-desc .sort-icon::after{content:'↓';opacity:1}
+thead th:not(.sort-asc):not(.sort-desc) .sort-icon::after{content:'↕'}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--panel)}
+td{padding:9px 14px;font-size:13px}
+td.mono{font-family:var(--mono);font-size:12px}
+td.muted{color:var(--muted);font-size:12px}
+td.discounted{font-family:var(--mono);color:var(--accent)}
 
-  /* Supplier type tabs */
-  .tabs{display:flex;gap:2px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:3px;width:fit-content;margin-bottom:20px}
-  .tab{padding:6px 18px;border-radius:4px;cursor:pointer;font-family:var(--mono);font-size:12px;color:var(--muted);transition:all .15s;user-select:none}
-  .tab.active{background:var(--accent);color:#000;font-weight:500}
+/* Tags */
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-family:var(--mono);font-size:11px}
+.tag-green{background:#0d2318;color:var(--green)}
+.tag-red{background:#200f0f;color:var(--red)}
+.tag-amber{background:#1f1505;color:var(--accent)}
+.tag-blue{background:#0a1628;color:var(--blue)}
 
-  /* Sheets table with inline discount edit */
-  .discount-input{width:70px;background:var(--panel);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:12px;padding:4px 8px;text-align:right;outline:none;transition:border-color .15s}
-  .discount-input:focus{border-color:var(--accent2)}
-  .save-disc-btn{opacity:0;transition:opacity .15s}
-  tr:hover .save-disc-btn{opacity:1}
+/* Pagination */
+.pagination{display:flex;align-items:center;gap:8px;margin-top:12px}
+.pagination span{font-family:var(--mono);font-size:12px;color:var(--muted)}
 
-  /* Terem preview table */
-  .preview-table-wrap{max-height:400px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:16px}
-  .badge-new{font-family:var(--mono);font-size:10px;padding:1px 6px;background:#0a1628;color:var(--blue);border-radius:3px;margin-left:6px}
+/* Suppliers page */
+.supplier-group{margin-bottom:24px}
+.supplier-header{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--panel);border:1px solid var(--border);border-radius:6px 6px 0 0;cursor:pointer;user-select:none}
+.supplier-header:hover{border-color:var(--border2)}
+.supplier-name{font-family:var(--mono);font-size:13px;font-weight:500}
+.supplier-type-badge{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:3px;background:var(--border);color:var(--muted)}
+.supplier-type-badge.terem{background:#1f1505;color:var(--accent)}
+.supplier-type-badge.flat{background:#0a1628;color:var(--blue)}
+.supplier-meta{font-size:12px;color:var(--muted);margin-left:auto}
+.supplier-toggle{color:var(--muted);font-size:12px;transition:transform .2s}
+.supplier-toggle.open{transform:rotate(180deg)}
+.supplier-sheets{border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;overflow:hidden}
+.supplier-sheets.hidden{display:none}
 
-  /* Diff colors */
-  .diff-up{color:var(--red)}
-  .diff-down{color:var(--green)}
-  .history-article{font-family:var(--mono);font-size:13px;color:var(--accent);margin-bottom:16px}
+/* Discount inputs */
+.discount-input{width:72px;background:var(--panel);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:12px;padding:4px 8px;text-align:right;outline:none;transition:border-color .15s}
+.discount-input:focus{border-color:var(--accent2)}
+.discount-input.dirty{border-color:var(--accent)}
+.save-all-bar{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 32px;display:none;align-items:center;gap:12px;z-index:10}
+.save-all-bar.visible{display:flex}
+.save-count{font-family:var(--mono);font-size:12px;color:var(--accent)}
 
-  ::-webkit-scrollbar{width:6px;height:6px}
-  ::-webkit-scrollbar-track{background:transparent}
-  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
-  ::-webkit-scrollbar-thumb:hover{background:var(--dim)}
+/* Upload */
+.upload-zone{border:2px dashed var(--border2);border-radius:8px;padding:36px 24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);margin-bottom:20px}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:#1a1500}
+.upload-zone-icon{font-size:26px;margin-bottom:8px}
+.upload-zone-title{font-size:14px;font-weight:500;margin-bottom:4px}
+.upload-zone-sub{font-size:12px;color:var(--muted)}
+.tabs{display:flex;gap:2px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:3px;width:fit-content;margin-bottom:20px}
+.tab{padding:6px 18px;border-radius:4px;cursor:pointer;font-family:var(--mono);font-size:12px;color:var(--muted);transition:all .15s;user-select:none}
+.tab.active{background:var(--accent);color:#000;font-weight:500}
+.field-group{display:flex;flex-direction:column;gap:5px}
+.field-label{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.log{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.8;max-height:220px;overflow-y:auto}
+.log-line{color:var(--muted)}
+.log-line.ok{color:var(--green)}
+.log-line.err{color:var(--red)}
+.log-line.info{color:var(--accent)}
+.preview-wrap{max-height:380px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:16px}
+.badge-new{font-family:var(--mono);font-size:10px;padding:1px 6px;background:#0a1628;color:var(--blue);border-radius:3px;margin-left:6px}
+
+/* History */
+.history-article{font-family:var(--mono);font-size:13px;color:var(--accent);margin-bottom:16px}
+.diff-up{color:var(--red)}
+.diff-down{color:var(--green)}
+
+/* Empty / spinner */
+.empty{text-align:center;padding:48px;color:var(--muted)}
+.empty-icon{font-size:32px;margin-bottom:10px}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 </style>
 </head>
 <body>
 <div class="layout">
 
-  <header class="topbar">
-    <div class="topbar-logo">▸ ПРАЙС-МОНИТОР</div>
-    <div class="topbar-sep"></div>
-    <div class="topbar-status" id="conn-status"><span class="topbar-dot"></span>подключено</div>
-  </header>
+<header class="topbar">
+  <div class="topbar-logo">▸ ПРАЙС-МОНИТОР</div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-status" id="conn-status"><span class="dot"></span>подключено</div>
+</header>
 
-  <nav class="sidebar">
-    <div class="nav-section">Данные</div>
-    <div class="nav-item active" data-page="prices"><span class="nav-icon">▤</span> Текущие цены</div>
-    <div class="nav-item" data-page="history"><span class="nav-icon">◷</span> История цен</div>
-    <div class="nav-item" data-page="compare"><span class="nav-icon">⇄</span> Сравнение дат</div>
-    <div class="nav-section">Управление</div>
-    <div class="nav-item" data-page="sheets"><span class="nav-icon">◈</span> Поставщики</div>
-    <div class="nav-item" data-page="upload"><span class="nav-icon">↑</span> Загрузить прайс</div>
-  </nav>
+<nav class="sidebar">
+  <div class="nav-section">Данные</div>
+  <div class="nav-item active" data-page="prices"><span class="nav-icon">▤</span> Текущие цены</div>
+  <div class="nav-item" data-page="history"><span class="nav-icon">◷</span> История цен</div>
+  <div class="nav-item" data-page="compare"><span class="nav-icon">⇄</span> Сравнение дат</div>
+  <div class="nav-section">Управление</div>
+  <div class="nav-item" data-page="suppliers"><span class="nav-icon">◈</span> Поставщики</div>
+  <div class="nav-item" data-page="upload"><span class="nav-icon">↑</span> Загрузить прайс</div>
+</nav>
 
-  <main class="main">
+<main class="main" id="main-content">
 
-    <!-- ── Текущие цены ─────────────────────────────────── -->
-    <section class="page active" id="page-prices">
-      <div class="page-header">
-        <div class="page-title">Текущие цены</div>
-        <div class="page-sub" id="prices-updated">Загрузка...</div>
-      </div>
-      <div class="cards" id="prices-cards"></div>
-      <div class="toolbar">
-        <input class="input" id="search-input" placeholder="Артикул, код или наименование..." style="width:300px" oninput="debouncedSearch()">
-        <select class="input" id="sheet-filter" onchange="loadPrices()" style="width:200px">
-          <option value="">Все поставщики</option>
-        </select>
-        <div class="spacer"></div>
-        <span id="prices-count" style="font-family:var(--mono);font-size:12px;color:var(--muted)"></span>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Артикул</th><th>Код</th><th>Наименование</th><th>Поставщик</th>
-            <th>Цена РРЦ</th><th>Цена со скидкой</th><th>Скидка</th><th>С даты</th>
-          </tr></thead>
-          <tbody id="prices-tbody"></tbody>
-        </table>
-      </div>
-      <div class="pagination">
-        <button class="btn-ghost" id="btn-prev" onclick="changePage(-1)">← Назад</button>
-        <span id="page-info"></span>
-        <button class="btn-ghost" id="btn-next" onclick="changePage(1)">Вперёд →</button>
-      </div>
-    </section>
+  <!-- ── Текущие цены ─────────────────────────────────── -->
+  <section class="page active" id="page-prices">
+    <div class="page-header">
+      <div class="page-title">Текущие цены</div>
+      <div class="page-sub" id="prices-updated">Загрузка...</div>
+    </div>
+    <div class="cards" id="prices-cards"></div>
+    <div class="toolbar">
+      <input class="input" id="search-input" placeholder="Артикул, код или наименование..." style="width:300px" oninput="debouncedSearch()">
+      <select class="input" id="supplier-filter" onchange="onSupplierFilter()" style="width:170px">
+        <option value="">Все поставщики</option>
+      </select>
+      <select class="input" id="sheet-filter" onchange="() => { currentPage=0; loadPrices(); }" style="width:200px">
+        <option value="">Все листы</option>
+      </select>
+      <div class="spacer"></div>
+      <span id="prices-count" style="font-family:var(--mono);font-size:12px;color:var(--muted)"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable" data-col="article">Артикул<i class="sort-icon"></i></th>
+            <th>Код</th>
+            <th class="sortable" data-col="name">Наименование<i class="sort-icon"></i></th>
+            <th class="sortable" data-col="supplier_name">Поставщик<i class="sort-icon"></i></th>
+            <th>Лист</th>
+            <th class="sortable" data-col="price_retail">Цена РРЦ<i class="sort-icon"></i></th>
+            <th class="sortable" data-col="price_discounted">Со скидкой<i class="sort-icon"></i></th>
+            <th>Скидка</th>
+            <th class="sortable" data-col="valid_from">С даты<i class="sort-icon"></i></th>
+          </tr>
+        </thead>
+        <tbody id="prices-tbody"></tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <button class="btn-ghost" id="btn-prev" onclick="changePage(-1)">← Назад</button>
+      <span id="page-info"></span>
+      <button class="btn-ghost" id="btn-next" onclick="changePage(1)">Вперёд →</button>
+    </div>
+  </section>
 
-    <!-- ── История цен ──────────────────────────────────── -->
-    <section class="page" id="page-history">
-      <div class="page-header">
-        <div class="page-title">История цен</div>
-        <div class="page-sub">Изменения по конкретному артикулу</div>
-      </div>
-      <div class="toolbar">
-        <input class="input" id="history-input" placeholder="Введите артикул..." style="width:360px">
-        <button class="btn" onclick="loadHistory()">Показать</button>
-      </div>
-      <div id="history-content">
-        <div class="empty"><div class="empty-icon">◷</div>Введите артикул</div>
-      </div>
-    </section>
+  <!-- ── История цен ──────────────────────────────────── -->
+  <section class="page" id="page-history">
+    <div class="page-header">
+      <div class="page-title">История цен</div>
+      <div class="page-sub">Изменения по конкретному артикулу</div>
+    </div>
+    <div class="toolbar">
+      <input class="input" id="history-input" placeholder="Введите артикул..." style="width:360px">
+      <button class="btn" onclick="loadHistory()">Показать</button>
+    </div>
+    <div id="history-content">
+      <div class="empty"><div class="empty-icon">◷</div>Введите артикул</div>
+    </div>
+  </section>
 
-    <!-- ── Сравнение дат ────────────────────────────────── -->
-    <section class="page" id="page-compare">
-      <div class="page-header">
-        <div class="page-title">Сравнение дат</div>
-        <div class="page-sub">Какие цены изменились между двумя датами</div>
+  <!-- ── Сравнение дат ────────────────────────────────── -->
+  <section class="page" id="page-compare">
+    <div class="page-header">
+      <div class="page-title">Сравнение дат</div>
+      <div class="page-sub">Какие цены изменились между двумя датами</div>
+    </div>
+    <div class="toolbar">
+      <div class="field-group">
+        <label class="field-label">Дата А (было)</label>
+        <input class="input" type="date" id="compare-from">
       </div>
-      <div class="toolbar">
+      <div class="field-group">
+        <label class="field-label">Дата Б (стало)</label>
+        <input class="input" type="date" id="compare-to">
+      </div>
+      <select class="input" id="compare-supplier" style="align-self:flex-end" onchange="updateCompareSheets()">
+        <option value="">Все поставщики</option>
+      </select>
+      <select class="input" id="compare-sheet" style="align-self:flex-end">
+        <option value="">Все листы</option>
+      </select>
+      <button class="btn" style="align-self:flex-end" onclick="loadCompare()">Сравнить</button>
+    </div>
+    <div id="compare-content"><div class="empty"><div class="empty-icon">⇄</div>Выберите даты</div></div>
+  </section>
+
+  <!-- ── Поставщики ───────────────────────────────────── -->
+  <section class="page" id="page-suppliers">
+    <div class="page-header">
+      <div class="page-title">Поставщики</div>
+      <div class="page-sub">Скидки по листам. Изменения сохраняются кнопкой внизу страницы.</div>
+    </div>
+    <div id="suppliers-content">
+      <div class="empty"><div class="spinner"></div></div>
+    </div>
+  </section>
+
+  <!-- ── Загрузить прайс ──────────────────────────────── -->
+  <section class="page" id="page-upload">
+    <div class="page-header">
+      <div class="page-title">Загрузить прайс</div>
+      <div class="page-sub">Выберите тип прайса и загрузите файл</div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" data-type="terem" onclick="switchType('terem')">Терем (STOUT/ROMMER)</div>
+      <div class="tab" data-type="flat" onclick="switchType('flat')">Плоский прайс</div>
+    </div>
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+      <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none" onchange="onFileSelected(this)">
+      <div class="upload-zone-icon">↑</div>
+      <div class="upload-zone-title" id="upload-zone-title">Перетащите файл или нажмите для выбора</div>
+      <div class="upload-zone-sub">.xlsx / .xls</div>
+    </div>
+    <!-- Flat fields -->
+    <div id="flat-fields" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
         <div class="field-group">
-          <label class="field-label">Дата А (было)</label>
-          <input class="input" type="date" id="compare-from">
+          <label class="field-label">Название поставщика</label>
+          <input class="input" id="flat-supplier" placeholder="Valfex">
         </div>
         <div class="field-group">
-          <label class="field-label">Дата Б (стало)</label>
-          <input class="input" type="date" id="compare-to">
+          <label class="field-label">Имя листа (пусто = первый)</label>
+          <input class="input" id="flat-sheet" placeholder="">
         </div>
-        <select class="input" id="compare-sheet" style="align-self:flex-end">
-          <option value="">Все поставщики</option>
-        </select>
-        <button class="btn" style="align-self:flex-end" onclick="loadCompare()">Сравнить</button>
-      </div>
-      <div id="compare-content">
-        <div class="empty"><div class="empty-icon">⇄</div>Выберите даты</div>
-      </div>
-    </section>
-
-    <!-- ── Поставщики ───────────────────────────────────── -->
-    <section class="page" id="page-sheets">
-      <div class="page-header">
-        <div class="page-title">Поставщики / Листы</div>
-        <div class="page-sub">Управление скидками для каждого листа</div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Лист / Поставщик</th><th>Товаров</th><th>Скидка, %</th>
-            <th>Последнее обновление</th><th></th>
-          </tr></thead>
-          <tbody id="sheets-tbody">
-            <tr><td colspan="5" style="text-align:center;padding:32px">
-              <div class="spinner"></div>
-            </td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ── Загрузить прайс ──────────────────────────────── -->
-    <section class="page" id="page-upload">
-      <div class="page-header">
-        <div class="page-title">Загрузить прайс</div>
-        <div class="page-sub">Выберите тип прайса и загрузите файл</div>
-      </div>
-
-      <div class="tabs">
-        <div class="tab active" data-type="terem" onclick="switchType('terem')">Терем (STOUT/ROMMER)</div>
-        <div class="tab" data-type="flat" onclick="switchType('flat')">Плоский прайс</div>
-      </div>
-
-      <!-- Зона загрузки файла -->
-      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
-        <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none" onchange="onFileSelected(this)">
-        <div class="upload-zone-icon">↑</div>
-        <div class="upload-zone-title" id="upload-zone-title">Перетащите файл или нажмите для выбора</div>
-        <div class="upload-zone-sub">.xlsx / .xls</div>
-      </div>
-
-      <!-- Блок для плоского прайса -->
-      <div id="flat-fields" style="display:none">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;margin-bottom:16px;align-items:end">
-          <div class="field-group">
-            <label class="field-label">Название поставщика (в БД)</label>
-            <input class="input" id="flat-supplier" placeholder="Valfex">
-          </div>
-          <div class="field-group">
-            <label class="field-label">Имя листа (пусто = первый)</label>
-            <input class="input" id="flat-sheet" placeholder="Оставьте пустым">
-          </div>
-          <div class="field-group">
-            <label class="field-label">Скидка % (0 = из файла)</label>
-            <input class="input" id="flat-discount" type="number" value="0" min="0" max="100">
-          </div>
-          <button class="btn" id="flat-btn" onclick="uploadFlat()" disabled>Загрузить</button>
+        <div class="field-group">
+          <label class="field-label">Скидка % (0 = из файла)</label>
+          <input class="input" id="flat-discount" type="number" value="0" min="0" max="100">
         </div>
-        <div class="field-group" style="margin-bottom:16px;max-width:220px">
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:16px">
+        <div class="field-group">
           <label class="field-label">Дата прайса (авто если пусто)</label>
           <input class="input" type="date" id="flat-date">
         </div>
+        <button class="btn" id="flat-btn" onclick="uploadFlat()" disabled>Загрузить</button>
       </div>
-
-      <!-- Блок для Терема -->
-      <div id="terem-fields" style="display:none">
-        <div style="display:flex;gap:12px;margin-bottom:16px;align-items:flex-end">
-          <div class="field-group">
-            <label class="field-label">Дата прайса (авто если пусто)</label>
-            <input class="input" type="date" id="terem-date">
-          </div>
-          <button class="btn" id="terem-preview-btn" onclick="teremPreview()" disabled>
-            Просмотр листов
-          </button>
+    </div>
+    <!-- Terem fields -->
+    <div id="terem-fields" style="display:none">
+      <div style="display:flex;gap:12px;margin-bottom:16px;align-items:flex-end">
+        <div class="field-group">
+          <label class="field-label">Дата прайса (авто если пусто)</label>
+          <input class="input" type="date" id="terem-date">
         </div>
-
-        <!-- Таблица листов с превью -->
-        <div id="terem-sheets-wrap" style="display:none">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div class="field-label">ЛИСТЫ В ФАЙЛЕ — ПРОВЕРЬТЕ СКИДКИ ПЕРЕД ЗАГРУЗКОЙ</div>
-            <button class="btn" id="terem-upload-btn" onclick="uploadTerem()">Загрузить все листы</button>
-          </div>
-          <div class="preview-table-wrap">
-            <table>
-              <thead><tr><th>Лист</th><th style="width:120px">Скидка, %</th><th>Статус в БД</th></tr></thead>
-              <tbody id="terem-sheets-tbody"></tbody>
-            </table>
-          </div>
+        <button class="btn" id="terem-preview-btn" onclick="teremPreview()" disabled>Просмотр листов</button>
+      </div>
+      <div id="terem-sheets-wrap" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div class="field-label">ЛИСТЫ — ПРОВЕРЬТЕ СКИДКИ</div>
+          <button class="btn" id="terem-upload-btn" onclick="uploadTerem()">Загрузить все листы</button>
+        </div>
+        <div class="preview-wrap">
+          <table>
+            <thead><tr><th>Лист</th><th style="width:130px">Скидка, %</th><th>Статус</th></tr></thead>
+            <tbody id="terem-sheets-tbody"></tbody>
+          </table>
         </div>
       </div>
+    </div>
+    <div id="upload-log" style="display:none;margin-top:16px">
+      <div class="field-label" style="margin-bottom:6px">ЛОГ</div>
+      <div class="log" id="log-content"></div>
+    </div>
+  </section>
 
-      <!-- Лог -->
-      <div id="upload-log" style="display:none;margin-top:16px">
-        <div class="field-label" style="margin-bottom:6px">ЛОГ ЗАГРУЗКИ</div>
-        <div class="log" id="log-content"></div>
-      </div>
-    </section>
+</main>
 
-  </main>
+<!-- Sticky save bar -->
+<div class="save-all-bar" id="save-all-bar">
+  <span class="save-count" id="save-count"></span>
+  <div class="spacer"></div>
+  <button class="btn-ghost" onclick="resetDiscounts()">Отменить</button>
+  <button class="btn" onclick="saveAllDiscounts()">Сохранить изменения</button>
 </div>
+
+</div><!-- .layout -->
 
 <script>
 const API = '';
-let currentPage = 0;
-const PAGE_SIZE = 100;
-let totalItems = 0;
-let sheets = [];
+let currentPage = 0, totalItems = 0;
+const PAGE_SIZE = 200;
+let sortCol = '', sortDir = 'asc';
 let searchTimer = null;
-let selectedFile = null;
-let uploadType = 'terem';
-let teremPreviewData = null;
+let suppliers = [], allSheets = [];
+let selectedFile = null, uploadType = 'terem', teremPreviewData = null;
+let dirtyDiscounts = {}; // {sheet_id: new_discount}
 
 // ── Nav ──────────────────────────────────────────────────────────────────────
 document.querySelectorAll('.nav-item').forEach(item => {
@@ -328,7 +352,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     item.classList.add('active');
     document.getElementById('page-' + item.dataset.page).classList.add('active');
-    if (item.dataset.page === 'sheets') renderSheets();
+    if (item.dataset.page === 'suppliers') renderSuppliers();
   });
 });
 
@@ -344,120 +368,120 @@ async function api(path, opts = {}) {
 
 // ── Format ───────────────────────────────────────────────────────────────────
 const fmtPrice = n => n == null ? '—' :
-  new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' ₽';
+  new Intl.NumberFormat('ru-RU', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(n) + ' ₽';
 const fmtDate  = s => s ? new Date(s).toLocaleDateString('ru-RU') : '—';
-const fmtDT    = s => s ? new Date(s).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+const fmtDT    = s => s ? new Date(s).toLocaleString('ru-RU', {
+  day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '—';
 
-// ── Init sheets ──────────────────────────────────────────────────────────────
-async function initSheets() {
+// ── Init data ────────────────────────────────────────────────────────────────
+async function init() {
   try {
-    sheets = await api('/api/sheets');
-    ['sheet-filter', 'compare-sheet'].forEach(id => {
-      const sel = document.getElementById(id);
-      const cur = sel.value;
-      while (sel.options.length > 1) sel.remove(1);
-      sheets.forEach(s => sel.appendChild(new Option(s.sheet_name, s.id)));
-      sel.value = cur;
-    });
-    const total = sheets.length;
-    const lastUp = sheets.map(s => s.last_updated).filter(Boolean).sort().pop();
-    document.getElementById('prices-cards').innerHTML = `
-      <div class="card"><div class="card-label">Листов</div>
-        <div class="card-value">${total}</div></div>
-      <div class="card"><div class="card-label">Последнее обновление</div>
-        <div class="card-value" style="font-size:14px">${lastUp ? fmtDT(lastUp) : '—'}</div></div>`;
-    if (lastUp) document.getElementById('prices-updated').textContent = 'Актуально на ' + fmtDT(lastUp);
-    document.getElementById('conn-status').innerHTML = '<span class="topbar-dot"></span>подключено';
+    [suppliers, allSheets] = await Promise.all([
+      api('/api/suppliers'),
+      api('/api/sheets'),
+    ]);
+    populateFilters();
+    updateCards();
+    document.getElementById('conn-status').innerHTML = '<span class="dot"></span>подключено';
   } catch (e) {
-    document.getElementById('conn-status').innerHTML = '<span style="color:var(--red)">● ошибка подключения</span>';
+    document.getElementById('conn-status').innerHTML =
+      '<span style="color:var(--red)">● ошибка подключения</span>';
   }
+  loadPrices();
 }
 
-// ── Sheets page ──────────────────────────────────────────────────────────────
-function renderSheets() {
-  if (!sheets.length) { initSheets().then(renderSheets); return; }
-  const tbody = document.getElementById('sheets-tbody');
-  tbody.innerHTML = sheets.map(s => `
-    <tr data-sheet-id="${s.id}">
-      <td style="cursor:pointer;color:var(--blue)" onclick="filterBySheet(${s.id})">${s.sheet_name}</td>
-      <td class="mono">${s.product_count ?? '—'}</td>
-      <td>
-        <div style="display:flex;align-items:center;gap:8px">
-          <input class="discount-input" type="number" min="0" max="100" step="0.1"
-            value="${s.discount_percent ?? 0}"
-            onchange="markDiscountChanged(this)"
-            id="disc-${s.id}">
-          <button class="btn btn-sm save-disc-btn" id="save-btn-${s.id}"
-            onclick="saveDiscount(${s.id})">Сохранить</button>
-        </div>
-      </td>
-      <td class="muted">${fmtDT(s.last_updated)}</td>
-      <td></td>
-    </tr>
-  `).join('');
+function populateFilters() {
+  // Supplier dropdowns
+  ['supplier-filter', 'compare-supplier'].forEach(id => {
+    const sel = document.getElementById(id);
+    while (sel.options.length > 1) sel.remove(1);
+    suppliers.forEach(s => sel.appendChild(new Option(s.name, s.id)));
+  });
 }
 
-function markDiscountChanged(input) {
-  const id = input.closest('tr').dataset.sheetId;
-  document.getElementById(`save-btn-${id}`).style.opacity = '1';
+function updateCards() {
+  const total = suppliers.reduce((s, x) => s + (x.product_count || 0), 0);
+  const lastUp = allSheets.map(s => s.last_updated).filter(Boolean).sort().pop();
+  document.getElementById('prices-cards').innerHTML = `
+    <div class="card"><div class="card-label">Поставщиков</div>
+      <div class="card-value">${suppliers.length}</div></div>
+    <div class="card"><div class="card-label">Листов</div>
+      <div class="card-value">${allSheets.length}</div></div>
+    <div class="card"><div class="card-label">Обновлено</div>
+      <div class="card-value" style="font-size:13px">${lastUp ? fmtDT(lastUp) : '—'}</div></div>`;
+  if (lastUp)
+    document.getElementById('prices-updated').textContent = 'Актуально на ' + fmtDT(lastUp);
 }
 
-async function saveDiscount(sheetId) {
-  const input = document.getElementById(`disc-${sheetId}`);
-  const btn   = document.getElementById(`save-btn-${sheetId}`);
-  const val   = parseFloat(input.value);
-  if (isNaN(val) || val < 0 || val > 100) { alert('Скидка от 0 до 100'); return; }
-  btn.disabled = true;
-  btn.textContent = '...';
-  try {
-    await api(`/api/sheets/${sheetId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ discount_percent: val })
-    });
-    btn.textContent = '✓';
-    btn.style.opacity = '0';
-    // Обновляем локально
-    const s = sheets.find(x => x.id === sheetId);
-    if (s) s.discount_percent = val;
-    setTimeout(() => { btn.textContent = 'Сохранить'; btn.disabled = false; }, 1500);
-  } catch (e) {
-    alert('Ошибка: ' + e.message);
-    btn.textContent = 'Сохранить';
-    btn.disabled = false;
-  }
-}
-
-function filterBySheet(sheetId) {
-  document.getElementById('sheet-filter').value = sheetId;
-  document.querySelector('[data-page="prices"]').click();
+// ── Sheet filter cascade ──────────────────────────────────────────────────────
+function onSupplierFilter() {
+  const supId = parseInt(document.getElementById('supplier-filter').value) || null;
+  const sheetSel = document.getElementById('sheet-filter');
+  while (sheetSel.options.length > 1) sheetSel.remove(1);
+  const filtered = supId ? allSheets.filter(s => s.supplier_id === supId) : allSheets;
+  filtered.forEach(s => sheetSel.appendChild(new Option(s.sheet_name, s.id)));
   currentPage = 0;
   loadPrices();
 }
 
+function updateCompareSheets() {
+  const supId = parseInt(document.getElementById('compare-supplier').value) || null;
+  const sel = document.getElementById('compare-sheet');
+  while (sel.options.length > 1) sel.remove(1);
+  const filtered = supId ? allSheets.filter(s => s.supplier_id === supId) : allSheets;
+  filtered.forEach(s => sel.appendChild(new Option(s.sheet_name, s.id)));
+}
+
+// ── Sort ──────────────────────────────────────────────────────────────────────
+document.querySelectorAll('thead th.sortable').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if (sortCol === col) {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortCol = col; sortDir = 'asc';
+    }
+    document.querySelectorAll('thead th').forEach(h => {
+      h.classList.remove('sort-asc', 'sort-desc');
+    });
+    th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+    currentPage = 0;
+    loadPrices();
+  });
+});
+
 // ── Prices ───────────────────────────────────────────────────────────────────
 async function loadPrices() {
-  const search  = document.getElementById('search-input').value.trim();
-  const sheetId = document.getElementById('sheet-filter').value;
+  const search   = document.getElementById('search-input').value.trim();
+  const supId    = document.getElementById('supplier-filter').value;
+  const sheetId  = document.getElementById('sheet-filter').value;
   let url = `/api/prices?limit=${PAGE_SIZE}&offset=${currentPage * PAGE_SIZE}`;
   if (search)  url += `&search=${encodeURIComponent(search)}`;
+  if (supId)   url += `&supplier_id=${supId}`;
   if (sheetId) url += `&sheet_id=${sheetId}`;
+  if (sortCol) url += `&sort_by=${sortCol}&sort_dir=${sortDir}`;
+
   const tbody = document.getElementById('prices-tbody');
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px"><div class="spinner"></div></td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px"><div class="spinner"></div></td></tr>';
+
   try {
     const data = await api(url);
     totalItems = data.total;
-    document.getElementById('prices-count').textContent = `${totalItems.toLocaleString('ru-RU')} позиций`;
+    document.getElementById('prices-count').textContent =
+      `${totalItems.toLocaleString('ru-RU')} позиций`;
     if (!data.items.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">Ничего не найдено</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--muted)">Ничего не найдено</td></tr>';
     } else {
       tbody.innerHTML = data.items.map(p => `
         <tr>
-          <td class="mono" style="cursor:pointer;color:var(--blue)" onclick="openHistory('${p.article}')">${p.article}</td>
+          <td class="mono" style="cursor:pointer;color:var(--blue)"
+              onclick="openHistory('${p.article}')">${p.article}</td>
           <td class="mono muted">${p.code || '—'}</td>
-          <td style="max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${p.name}">${p.name}</td>
-          <td class="muted">${p.sheet_name}</td>
-          <td class="price">${fmtPrice(p.price_retail)}</td>
+          <td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+              title="${p.name}">${p.name}</td>
+          <td class="muted">${p.supplier_name}</td>
+          <td class="muted" style="font-size:11px">${p.sheet_name}</td>
+          <td class="mono">${fmtPrice(p.price_retail)}</td>
           <td class="discounted">${fmtPrice(p.price_discounted)}</td>
           <td class="mono muted">−${p.discount_applied}%</td>
           <td class="muted">${fmtDate(p.valid_from)}</td>
@@ -465,13 +489,14 @@ async function loadPrices() {
     }
     updatePagination();
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--red)">${e.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--red)">${e.message}</td></tr>`;
   }
 }
 
 function updatePagination() {
   const total = Math.ceil(totalItems / PAGE_SIZE);
-  document.getElementById('page-info').textContent = total > 1 ? `стр. ${currentPage + 1} из ${total}` : '';
+  document.getElementById('page-info').textContent =
+    total > 1 ? `стр. ${currentPage + 1} из ${total}` : '';
   document.getElementById('btn-prev').disabled = currentPage === 0;
   document.getElementById('btn-next').disabled = (currentPage + 1) >= total;
 }
@@ -506,17 +531,22 @@ async function loadHistory() {
       return `<tr>
         <td class="mono">${fmtDate(h.valid_from)}</td>
         <td class="mono">${h.valid_to ? fmtDate(h.valid_to) : '∞'}</td>
-        <td class="price">${fmtPrice(h.price_retail)}</td>
+        <td class="mono">${fmtPrice(h.price_retail)}</td>
         <td class="discounted">${fmtPrice(h.price_discounted)}</td>
         <td class="mono muted">−${h.discount_applied}%</td>
         <td>${diff}</td>
-        <td>${h.is_current ? '<span class="tag tag-green">актуально</span>' : '<span class="tag" style="background:var(--panel);color:var(--muted)">истёк</span>'}</td>
+        <td>${h.is_current
+          ? '<span class="tag tag-green">актуально</span>'
+          : '<span class="tag" style="background:var(--panel);color:var(--muted)">истёк</span>'}</td>
       </tr>`;
     }).join('');
     cont.innerHTML = `
       <div class="history-article">Артикул: ${article}</div>
       <div class="table-wrap"><table>
-        <thead><tr><th>С даты</th><th>По дату</th><th>Цена РРЦ</th><th>Со скидкой</th><th>Скидка</th><th>Изменение</th><th>Статус</th></tr></thead>
+        <thead><tr>
+          <th>С даты</th><th>По дату</th><th>Цена РРЦ</th>
+          <th>Со скидкой</th><th>Скидка</th><th>Изменение</th><th>Статус</th>
+        </tr></thead>
         <tbody>${rows}</tbody>
       </table></div>`;
   } catch (e) {
@@ -526,46 +556,63 @@ async function loadHistory() {
 
 // ── Compare ──────────────────────────────────────────────────────────────────
 async function loadCompare() {
-  const from = document.getElementById('compare-from').value;
-  const to   = document.getElementById('compare-to').value;
-  const sid  = document.getElementById('compare-sheet').value;
-  const cont = document.getElementById('compare-content');
-  if (!from || !to) { cont.innerHTML = '<div class="empty" style="color:var(--red)">Укажите обе даты</div>'; return; }
+  const from  = document.getElementById('compare-from').value;
+  const to    = document.getElementById('compare-to').value;
+  const supId = document.getElementById('compare-supplier').value;
+  const sid   = document.getElementById('compare-sheet').value;
+  const cont  = document.getElementById('compare-content');
+  if (!from || !to) {
+    cont.innerHTML = '<div class="empty" style="color:var(--red)">Укажите обе даты</div>';
+    return;
+  }
   cont.innerHTML = '<div style="padding:24px;text-align:center"><div class="spinner"></div></div>';
   try {
     let url = `/api/prices/compare?date_from=${from}&date_to=${to}`;
-    if (sid) url += `&sheet_id=${sid}`;
+    if (supId) url += `&supplier_id=${supId}`;
+    if (sid)   url += `&sheet_id=${sid}`;
     const data = await api(url);
     if (!data.items.length) {
-      cont.innerHTML = '<div class="empty"><div class="empty-icon">✓</div>Цены не изменились</div>'; return;
+      cont.innerHTML = '<div class="empty"><div class="empty-icon">✓</div>Цены не изменились</div>';
+      return;
     }
-    const tag = c => ({ new:'<span class="tag tag-blue">Новый</span>', removed:'<span class="tag tag-red">Снят</span>', changed:'<span class="tag tag-amber">Изменён</span>' }[c] || c);
+    const tag = c => ({
+      new: '<span class="tag tag-blue">Новый</span>',
+      removed: '<span class="tag tag-red">Снят</span>',
+      changed: '<span class="tag tag-amber">Изменён</span>',
+    }[c] || c);
     const rows = data.items.map(d => {
       const diff = d.price_from && d.price_to ? d.price_to - d.price_from : null;
       const diffEl = diff == null ? '' : diff > 0
         ? `<span class="diff-up">+${fmtPrice(diff)}</span>`
         : `<span class="diff-down">${fmtPrice(diff)}</span>`;
       return `<tr>
-        <td class="mono" style="color:var(--blue);cursor:pointer" onclick="openHistory('${d.article}')">${d.article}</td>
-        <td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${d.name}">${d.name}</td>
-        <td class="muted">${d.sheet_name}</td>
-        <td class="price">${d.price_from ? fmtPrice(d.price_from) : '—'}</td>
-        <td class="price">${d.price_to ? fmtPrice(d.price_to) : '—'}</td>
+        <td class="mono" style="color:var(--blue);cursor:pointer"
+            onclick="openHistory('${d.article}')">${d.article}</td>
+        <td style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+            title="${d.name}">${d.name}</td>
+        <td class="muted">${d.supplier_name}</td>
+        <td class="mono">${d.price_from ? fmtPrice(d.price_from) : '—'}</td>
+        <td class="mono">${d.price_to ? fmtPrice(d.price_to) : '—'}</td>
         <td>${diffEl}</td><td>${tag(d.change)}</td></tr>`;
     }).join('');
-    const ch = data.items.filter(i=>i.change==='changed').length;
-    const ad = data.items.filter(i=>i.change==='new').length;
-    const rm = data.items.filter(i=>i.change==='removed').length;
+    const ch = data.items.filter(i => i.change === 'changed').length;
+    const ad = data.items.filter(i => i.change === 'new').length;
+    const rm = data.items.filter(i => i.change === 'removed').length;
     cont.innerHTML = `
       <div class="cards" style="margin-bottom:16px">
-        <div class="card"><div class="card-label">Изменено</div><div class="card-value" style="color:var(--accent)">${ch}</div></div>
-        <div class="card"><div class="card-label">Добавлено</div><div class="card-value" style="color:var(--green)">${ad}</div></div>
-        <div class="card"><div class="card-label">Снято</div><div class="card-value" style="color:var(--red)">${rm}</div></div>
+        <div class="card"><div class="card-label">Изменено</div>
+          <div class="card-value" style="color:var(--accent)">${ch}</div></div>
+        <div class="card"><div class="card-label">Добавлено</div>
+          <div class="card-value" style="color:var(--green)">${ad}</div></div>
+        <div class="card"><div class="card-label">Снято</div>
+          <div class="card-value" style="color:var(--red)">${rm}</div></div>
       </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Артикул</th><th>Наименование</th><th>Поставщик</th>
+        <thead><tr>
+          <th>Артикул</th><th>Наименование</th><th>Поставщик</th>
           <th>Было (${fmtDate(from)})</th><th>Стало (${fmtDate(to)})</th>
-          <th>Разница</th><th>Статус</th></tr></thead>
+          <th>Разница</th><th>Статус</th>
+        </tr></thead>
         <tbody>${rows}</tbody>
       </table></div>`;
   } catch (e) {
@@ -573,40 +620,174 @@ async function loadCompare() {
   }
 }
 
-// ── Upload: общее ─────────────────────────────────────────────────────────────
+// ── Suppliers page ────────────────────────────────────────────────────────────
+function renderSuppliers() {
+  if (!suppliers.length) { init().then(renderSuppliers); return; }
+  dirtyDiscounts = {};
+  updateSaveBar();
+
+  const cont = document.getElementById('suppliers-content');
+  // Группируем листы по supplier_id
+  const sheetsBySupplier = {};
+  allSheets.forEach(s => {
+    if (!sheetsBySupplier[s.supplier_id]) sheetsBySupplier[s.supplier_id] = [];
+    sheetsBySupplier[s.supplier_id].push(s);
+  });
+
+  cont.innerHTML = suppliers.map(sup => {
+    const sheets = sheetsBySupplier[sup.id] || [];
+    const typeLabel = sup.supplier_type === 'terem' ? 'Терем' : 'Прайс';
+    const rows = sheets.map(s => `
+      <tr>
+        <td style="padding-left:20px">${s.sheet_name}</td>
+        <td class="mono muted">${s.product_count ?? 0}</td>
+        <td>
+          <input class="discount-input" type="number" min="0" max="100" step="0.1"
+            value="${s.discount_percent ?? 0}"
+            data-sheet-id="${s.id}"
+            data-original="${s.discount_percent ?? 0}"
+            oninput="onDiscountChange(this)">
+        </td>
+        <td class="muted">${fmtDT(s.last_updated)}</td>
+      </tr>`).join('');
+
+    return `
+      <div class="supplier-group">
+        <div class="supplier-header" onclick="toggleSupplier(${sup.id})">
+          <span class="supplier-name">${sup.name}</span>
+          <span class="supplier-type-badge ${sup.supplier_type}">${typeLabel}</span>
+          <span class="supplier-meta">
+            ${sheets.length} ${sheets.length === 1 ? 'лист' : 'листов'} ·
+            ${sup.product_count ?? 0} позиций ·
+            ${sup.last_updated ? fmtDT(sup.last_updated) : 'нет данных'}
+          </span>
+          <span class="supplier-toggle open" id="toggle-${sup.id}">▾</span>
+        </div>
+        <div class="supplier-sheets" id="sheets-${sup.id}">
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="padding:8px 20px;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);background:var(--panel);border-bottom:1px solid var(--border);text-align:left">Лист</th>
+              <th style="padding:8px 14px;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);background:var(--panel);border-bottom:1px solid var(--border);text-align:left;width:80px">Товаров</th>
+              <th style="padding:8px 14px;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);background:var(--panel);border-bottom:1px solid var(--border);text-align:left;width:140px">Скидка, %</th>
+              <th style="padding:8px 14px;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);background:var(--panel);border-bottom:1px solid var(--border);text-align:left">Обновлено</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleSupplier(supId) {
+  const el = document.getElementById(`sheets-${supId}`);
+  const tog = document.getElementById(`toggle-${supId}`);
+  el.classList.toggle('hidden');
+  tog.classList.toggle('open');
+}
+
+function onDiscountChange(input) {
+  const id  = parseInt(input.dataset.sheetId);
+  const orig = parseFloat(input.dataset.original);
+  const val  = parseFloat(input.value);
+  if (val === orig) {
+    delete dirtyDiscounts[id];
+    input.classList.remove('dirty');
+  } else {
+    dirtyDiscounts[id] = val;
+    input.classList.add('dirty');
+  }
+  updateSaveBar();
+}
+
+function updateSaveBar() {
+  const count = Object.keys(dirtyDiscounts).length;
+  const bar   = document.getElementById('save-all-bar');
+  bar.classList.toggle('visible', count > 0);
+  document.getElementById('save-count').textContent =
+    count > 0 ? `Изменено: ${count} ${count === 1 ? 'лист' : 'листов'}` : '';
+}
+
+function resetDiscounts() {
+  document.querySelectorAll('.discount-input').forEach(inp => {
+    inp.value = inp.dataset.original;
+    inp.classList.remove('dirty');
+  });
+  dirtyDiscounts = {};
+  updateSaveBar();
+}
+
+async function saveAllDiscounts() {
+  const btn = document.querySelector('#save-all-bar .btn');
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    await api('/api/sheets/bulk', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dirtyDiscounts),
+    });
+    // Обновляем original в инпутах
+    document.querySelectorAll('.discount-input').forEach(inp => {
+      const id = parseInt(inp.dataset.sheetId);
+      if (id in dirtyDiscounts) {
+        inp.dataset.original = dirtyDiscounts[id];
+        inp.classList.remove('dirty');
+        // Обновляем локальный массив
+        const s = allSheets.find(x => x.id === id);
+        if (s) s.discount_percent = dirtyDiscounts[id];
+      }
+    });
+    dirtyDiscounts = {};
+    updateSaveBar();
+    btn.textContent = '✓ Сохранено';
+    setTimeout(() => { btn.textContent = 'Сохранить изменения'; btn.disabled = false; }, 1500);
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+    btn.textContent = 'Сохранить изменения';
+    btn.disabled = false;
+  }
+}
+
+// ── Upload ────────────────────────────────────────────────────────────────────
 const zone = document.getElementById('upload-zone');
 zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
 zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
 zone.addEventListener('drop', e => {
   e.preventDefault(); zone.classList.remove('drag');
-  const f = e.dataTransfer.files[0];
-  if (f) setFile(f);
+  if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
 });
 
-function setFile(f) {
+async function setFile(f) {
   selectedFile = f;
   document.getElementById('upload-zone-title').textContent = `✓ ${f.name}`;
   teremPreviewData = null;
   document.getElementById('terem-sheets-wrap').style.display = 'none';
-  if (uploadType === 'terem') {
-    document.getElementById('terem-preview-btn').disabled = false;
-  } else {
-    document.getElementById('flat-btn').disabled = false;
+  // Автоопределение типа
+  try {
+    const form = new FormData();
+    form.append('file', f);
+    const data = await api('/api/upload/terem/preview', { method: 'POST', body: form });
+    const isTerem = data.sheets && data.sheets.length > 0;
+    switchType(isTerem ? 'terem' : 'flat');
+    if (isTerem) { teremPreviewData = data; renderTeremPreview(data); }
+    else if (f.name) {
+      document.getElementById('flat-supplier').value =
+        f.name.replace(/[_-]\d{4}-\d{2}-\d{2}/, '').replace(/\.xlsx?$/i, '');
+    }
+  } catch {
+    switchType('flat');
   }
+  document.getElementById('terem-preview-btn').disabled = false;
+  document.getElementById('flat-btn').disabled = false;
 }
 function onFileSelected(input) { if (input.files[0]) setFile(input.files[0]); }
 
 function switchType(type) {
   uploadType = type;
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.type === type));
+  document.querySelectorAll('.tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.type === type));
   document.getElementById('terem-fields').style.display = type === 'terem' ? 'block' : 'none';
   document.getElementById('flat-fields').style.display  = type === 'flat'  ? 'block' : 'none';
-  if (selectedFile) {
-    document.getElementById('terem-preview-btn').disabled = type !== 'terem';
-    document.getElementById('flat-btn').disabled = type !== 'flat';
-  }
 }
-// Показываем terem по умолчанию
 switchType('terem');
 
 function log(text, type = '') {
@@ -617,33 +798,37 @@ function log(text, type = '') {
   el.appendChild(line);
   el.scrollTop = el.scrollHeight;
 }
-function showLog() { document.getElementById('upload-log').style.display = 'block'; document.getElementById('log-content').innerHTML = ''; }
+function showLog() {
+  document.getElementById('upload-log').style.display = 'block';
+  document.getElementById('log-content').innerHTML = '';
+}
 
-// ── Upload: Терем ─────────────────────────────────────────────────────────────
+function renderTeremPreview(data) {
+  const tbody = document.getElementById('terem-sheets-tbody');
+  tbody.innerHTML = data.sheets.map((s, i) => `
+    <tr>
+      <td>${s.sheet_name}${s.is_new ? '<span class="badge-new">новый</span>' : ''}</td>
+      <td><input class="discount-input" type="number" min="0" max="100" step="0.1"
+        id="td-disc-${i}" value="${s.discount_percent}"></td>
+      <td>${s.is_new
+        ? '<span class="tag tag-blue">Будет создан</span>'
+        : '<span class="tag tag-green">Есть в БД</span>'}</td>
+    </tr>`).join('');
+  document.getElementById('terem-sheets-wrap').style.display = 'block';
+}
+
 async function teremPreview() {
   if (!selectedFile) return;
   const btn = document.getElementById('terem-preview-btn');
   btn.disabled = true; btn.textContent = '...';
-  showLog();
-  log('Анализ файла...', 'info');
+  showLog(); log('Анализ файла...', 'info');
   try {
     const form = new FormData();
     form.append('file', selectedFile);
     const data = await api('/api/upload/terem/preview', { method: 'POST', body: form });
     teremPreviewData = data;
-    log(`Найдено листов STOUT/ROMMER: ${data.sheets.length}`, 'ok');
-
-    const tbody = document.getElementById('terem-sheets-tbody');
-    tbody.innerHTML = data.sheets.map((s, i) => `
-      <tr>
-        <td>${s.sheet_name}${s.is_new ? '<span class="badge-new">новый</span>' : ''}</td>
-        <td><input class="discount-input" type="number" min="0" max="100" step="0.1"
-          id="td-disc-${i}" value="${s.discount_percent}"></td>
-        <td>${s.is_new
-          ? '<span class="tag tag-blue">Будет создан</span>'
-          : '<span class="tag tag-green">Есть в БД</span>'}</td>
-      </tr>`).join('');
-    document.getElementById('terem-sheets-wrap').style.display = 'block';
+    log(`Найдено листов: ${data.sheets.length}`, 'ok');
+    renderTeremPreview(data);
   } catch (e) {
     log('Ошибка: ' + e.message, 'err');
   } finally {
@@ -655,72 +840,57 @@ async function uploadTerem() {
   if (!selectedFile || !teremPreviewData) return;
   const btn = document.getElementById('terem-upload-btn');
   btn.disabled = true; btn.textContent = '...';
-  showLog();
-  log('Загрузка файла Терема...', 'info');
-
-  // Собираем скидки из таблицы превью
+  showLog(); log('Загрузка...', 'info');
   const discounts = {};
   teremPreviewData.sheets.forEach((s, i) => {
     const v = parseFloat(document.getElementById(`td-disc-${i}`).value);
     if (!isNaN(v)) discounts[s.sheet_name] = v;
   });
-
   const dateVal = document.getElementById('terem-date').value;
-  const discountsJson = JSON.stringify(discounts);
-  let url = `/api/upload/terem?sheet_discounts_json=${encodeURIComponent(discountsJson)}`;
+  let url = `/api/upload/terem?sheet_discounts_json=${encodeURIComponent(JSON.stringify(discounts))}`;
   if (dateVal) url += `&price_date=${dateVal}`;
-
   const form = new FormData();
   form.append('file', selectedFile);
-
   try {
-    const res = await fetch(API + url, { method: 'POST', body: form });
-    const data = await res.json();
-    if (!res.ok) { log('Ошибка: ' + (data.detail || res.statusText), 'err'); return; }
-
-    log(`✓ Обработано листов: ${data.sheets_processed}`, 'ok');
-    log(`Новых товаров: ${data.total_stats.new}`, 'ok');
-    log(`Изменено цен: ${data.total_stats.changed}`, 'ok');
+    const data = await api(url, { method: 'POST', body: form });
+    log(`✓ Листов: ${data.sheets_processed}`, 'ok');
+    log(`Новых: ${data.total_stats.new}`, 'ok');
+    log(`Изменено: ${data.total_stats.changed}`, 'ok');
     log(`Без изменений: ${data.total_stats.unchanged}`, 'ok');
-    log(`Дата прайса: ${fmtDate(data.price_date)}`, 'ok');
-    log('✓ Загрузка завершена', 'ok');
-    await initSheets(); currentPage = 0; loadPrices();
+    log('✓ Готово', 'ok');
+    [suppliers, allSheets] = await Promise.all([api('/api/suppliers'), api('/api/sheets')]);
+    populateFilters(); updateCards(); currentPage = 0; loadPrices();
   } catch (e) {
-    log('Сетевая ошибка: ' + e.message, 'err');
+    log('Ошибка: ' + e.message, 'err');
   } finally {
     btn.textContent = 'Загрузить все листы'; btn.disabled = false;
   }
 }
 
-// ── Upload: плоский прайс ─────────────────────────────────────────────────────
 async function uploadFlat() {
   if (!selectedFile) return;
-  const supplier  = document.getElementById('flat-supplier').value.trim();
-  const sheetName = document.getElementById('flat-sheet').value.trim();
-  const discount  = parseFloat(document.getElementById('flat-discount').value) || 0;
-  const dateVal   = document.getElementById('flat-date').value;
+  const supplier = document.getElementById('flat-supplier').value.trim();
+  const sheet    = document.getElementById('flat-sheet').value.trim();
+  const discount = parseFloat(document.getElementById('flat-discount').value) || 0;
+  const dateVal  = document.getElementById('flat-date').value;
   if (!supplier) { alert('Укажите название поставщика'); return; }
-
   const btn = document.getElementById('flat-btn');
   btn.disabled = true;
-  showLog();
-  log('Отправка...', 'info');
-
+  showLog(); log('Отправка...', 'info');
   let url = `/api/upload/flat?supplier_name=${encodeURIComponent(supplier)}&discount_percent=${discount}`;
-  if (sheetName) url += `&sheet_name=${encodeURIComponent(sheetName)}`;
-  if (dateVal)   url += `&price_date=${dateVal}`;
-
+  if (sheet)   url += `&sheet_name=${encodeURIComponent(sheet)}`;
+  if (dateVal) url += `&price_date=${dateVal}`;
   const form = new FormData();
   form.append('file', selectedFile);
   try {
     const data = await api(url, { method: 'POST', body: form });
     log(`Поставщик: ${data.supplier}`, 'ok');
-    log(`Дата прайса: ${fmtDate(data.price_date)}`, 'ok');
+    log(`Дата: ${fmtDate(data.price_date)}`, 'ok');
     log(`Новых: ${data.stats.new}`, 'ok');
     log(`Изменено: ${data.stats.changed}`, 'ok');
-    log(`Без изменений: ${data.stats.unchanged}`, 'ok');
     log('✓ Готово', 'ok');
-    await initSheets(); currentPage = 0; loadPrices();
+    [suppliers, allSheets] = await Promise.all([api('/api/suppliers'), api('/api/sheets')]);
+    populateFilters(); updateCards(); currentPage = 0; loadPrices();
   } catch (e) {
     log('Ошибка: ' + e.message, 'err');
   } finally {
@@ -728,15 +898,13 @@ async function uploadFlat() {
   }
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────────
+// ── Boot ──────────────────────────────────────────────────────────────────────
 (() => {
   const today    = new Date().toISOString().split('T')[0];
   const monthAgo = new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0];
   document.getElementById('compare-to').value   = today;
   document.getElementById('compare-from').value = monthAgo;
 })();
-
-async function init() { await initSheets(); loadPrices(); }
 init();
 </script>
 </body>
