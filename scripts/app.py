@@ -20,7 +20,7 @@ from parsers import (
     parse_flat_sheet, parse_terem_sheet, parse_rommer_spr,
     get_terem_sheets, parse_terem_file,
 )
-from run_parser import parse_date_from_filename, parse_date_from_excel
+from utils import parse_date_from_filename, parse_date_from_excel
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
