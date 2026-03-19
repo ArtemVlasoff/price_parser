@@ -6,152 +6,125 @@ import tempfile
 from datetime import date, datetime
 from typing import Optional
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Query
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query, Body
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 sys.path.append(os.path.dirname(__file__))
 
-from database import get_connection, get_or_create_sheet, save_products_to_db
-from parsers import parse_rommer_sheet
+from database import (
+    get_connection, get_or_create_sheet, get_all_sheets,
+    update_sheet_discount, ensure_sheet_exists, save_products_to_db,
+)
+from parsers import (
+    parse_flat_sheet, parse_terem_sheet, parse_rommer_spr,
+    get_terem_sheets, parse_terem_file,
+)
 from run_parser import parse_date_from_filename, parse_date_from_excel
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Price Parser API", version="1.0.0")
+app = FastAPI(title="Price Parser API", version="2.0.0")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-# ---------------------------------------------------------------------------
-# Вспомогательные функции
-# ---------------------------------------------------------------------------
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def get_conn():
-    """Хелпер: подключение к БД с понятной HTTP-ошибкой при неудаче."""
     try:
         return get_connection()
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Нет подключения к БД: {e}")
 
+def fmt_sheets(rows: list[dict]) -> list[dict]:
+    return [
+        {**r,
+         "discount_percent": float(r["discount_percent"]) if r["discount_percent"] is not None else 0.0,
+         "last_updated": r["last_updated"].isoformat() if r["last_updated"] else None,
+         "product_count": r["product_count"] or 0,
+        }
+        for r in rows
+    ]
 
-# ---------------------------------------------------------------------------
-# Эндпоинты — данные
-# ---------------------------------------------------------------------------
+
+# ── Sheets ────────────────────────────────────────────────────────────────────
 
 @app.get("/api/sheets")
 def list_sheets():
-    """
-    Список всех листов со скидкой и датой последней загрузки.
-    """
     conn = get_conn()
     try:
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT
-                s.id,
-                s.sheet_name,
-                s.discount_percent,
-                s.is_active,
-                MAX(ph.updated_at) AS last_updated
-            FROM sheets s
-            LEFT JOIN products p ON p.sheet_id = s.id
-            LEFT JOIN price_history ph ON ph.product_id = p.id AND ph.is_current = true
-            GROUP BY s.id, s.sheet_name, s.discount_percent, s.is_active
-            ORDER BY s.sheet_name
-        """)
-        rows = cur.fetchall()
-        return [
-            {
-                "id": r[0],
-                "sheet_name": r[1],
-                "discount_percent": float(r[2]) if r[2] is not None else None,
-                "is_active": r[3],
-                "last_updated": r[4].isoformat() if r[4] else None,
-            }
-            for r in rows
-        ]
+        return fmt_sheets(get_all_sheets(conn))
     finally:
         conn.close()
 
 
+@app.patch("/api/sheets/{sheet_id}")
+def patch_sheet_discount(sheet_id: int, discount_percent: float = Body(..., embed=True)):
+    """Обновить скидку листа."""
+    if not (0 <= discount_percent <= 100):
+        raise HTTPException(status_code=400, detail="Скидка должна быть от 0 до 100")
+    conn = get_conn()
+    try:
+        found = update_sheet_discount(conn, sheet_id, discount_percent)
+        if not found:
+            raise HTTPException(status_code=404, detail="Лист не найден")
+        conn.commit()
+        return {"ok": True, "sheet_id": sheet_id, "discount_percent": discount_percent}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+# ── Prices ────────────────────────────────────────────────────────────────────
+
 @app.get("/api/prices")
 def get_prices(
     sheet_id: Optional[int] = None,
-    search: Optional[str] = Query(None, description="Поиск по артикулу или названию"),
+    search: Optional[str] = Query(None),
     limit: int = Query(200, le=2000),
     offset: int = 0,
 ):
-    """
-    Текущие цены. Можно фильтровать по листу и искать по тексту.
-    """
     conn = get_conn()
     try:
         cur = conn.cursor()
-
         where = ["ph.is_current = true"]
         params: list = []
-
-        if sheet_id is not None:
-            where.append("s.id = %s")
-            params.append(sheet_id)
-
+        if sheet_id:
+            where.append("s.id = %s"); params.append(sheet_id)
         if search:
-            where.append("(p.article ILIKE %s OR p.name ILIKE %s)")
-            params += [f"%{search}%", f"%{search}%"]
-
-        where_sql = "WHERE " + " AND ".join(where)
-
+            where.append("(p.article ILIKE %s OR p.code ILIKE %s OR p.name ILIKE %s)")
+            params += [f"%{search}%"] * 3
+        w = "WHERE " + " AND ".join(where)
         cur.execute(f"""
-            SELECT
-                p.article,
-                p.name,
-                s.sheet_name,
-                ph.price_retail,
-                ph.price_discounted,
-                ph.discount_applied,
-                ph.valid_from,
-                ph.updated_at
+            SELECT p.article, p.code, p.name, s.sheet_name,
+                   ph.price_retail, ph.price_discounted, ph.discount_applied,
+                   ph.valid_from, ph.updated_at
             FROM price_history ph
             JOIN products p ON ph.product_id = p.id
             JOIN sheets s ON p.sheet_id = s.id
-            {where_sql}
-            ORDER BY s.sheet_name, p.article
+            {w} ORDER BY s.sheet_name, p.article
             LIMIT %s OFFSET %s
         """, params + [limit, offset])
-
         rows = cur.fetchall()
-
-        # Общее количество (для пагинации)
         cur.execute(f"""
-            SELECT COUNT(*)
-            FROM price_history ph
+            SELECT COUNT(*) FROM price_history ph
             JOIN products p ON ph.product_id = p.id
-            JOIN sheets s ON p.sheet_id = s.id
-            {where_sql}
+            JOIN sheets s ON p.sheet_id = s.id {w}
         """, params)
         total = cur.fetchone()[0]
-
         return {
-            "total": total,
-            "limit": limit,
-            "offset": offset,
+            "total": total, "limit": limit, "offset": offset,
             "items": [
-                {
-                    "article": r[0],
-                    "name": r[1],
-                    "sheet_name": r[2],
-                    "price_retail": float(r[3]),
-                    "price_discounted": float(r[4]),
-                    "discount_applied": float(r[5]),
-                    "valid_from": r[6].isoformat() if r[6] else None,
-                    "updated_at": r[7].isoformat() if r[7] else None,
-                }
+                {"article": r[0], "code": r[1], "name": r[2], "sheet_name": r[3],
+                 "price_retail": float(r[4]), "price_discounted": float(r[5]),
+                 "discount_applied": float(r[6]),
+                 "valid_from": r[7].isoformat() if r[7] else None,
+                 "updated_at": r[8].isoformat() if r[8] else None}
                 for r in rows
             ],
         }
@@ -161,37 +134,24 @@ def get_prices(
 
 @app.get("/api/prices/history")
 def get_price_history(article: str):
-    """
-    Полная история цен для конкретного артикула.
-    """
     conn = get_conn()
     try:
         cur = conn.cursor()
         cur.execute("""
-            SELECT
-                ph.price_retail,
-                ph.price_discounted,
-                ph.discount_applied,
-                ph.valid_from,
-                ph.valid_to,
-                ph.is_current
-            FROM price_history ph
-            JOIN products p ON ph.product_id = p.id
-            WHERE p.article = %s
-            ORDER BY ph.valid_from DESC
+            SELECT ph.price_retail, ph.price_discounted, ph.discount_applied,
+                   ph.valid_from, ph.valid_to, ph.is_current
+            FROM price_history ph JOIN products p ON ph.product_id = p.id
+            WHERE p.article = %s ORDER BY ph.valid_from DESC
         """, (article,))
         rows = cur.fetchall()
         if not rows:
             raise HTTPException(status_code=404, detail=f"Артикул {article} не найден")
         return [
-            {
-                "price_retail": float(r[0]),
-                "price_discounted": float(r[1]),
-                "discount_applied": float(r[2]),
-                "valid_from": r[3].isoformat() if r[3] else None,
-                "valid_to": r[4].isoformat() if r[4] and r[4].year < 9999 else None,
-                "is_current": r[5],
-            }
+            {"price_retail": float(r[0]), "price_discounted": float(r[1]),
+             "discount_applied": float(r[2]),
+             "valid_from": r[3].isoformat() if r[3] else None,
+             "valid_to": r[4].isoformat() if r[4] and r[4].year < 9999 else None,
+             "is_current": r[5]}
             for r in rows
         ]
     finally:
@@ -200,145 +160,231 @@ def get_price_history(article: str):
 
 @app.get("/api/prices/compare")
 def compare_prices(
-    date_from: str = Query(..., description="Дата A в формате YYYY-MM-DD"),
-    date_to: str = Query(..., description="Дата B в формате YYYY-MM-DD"),
+    date_from: str = Query(...),
+    date_to: str = Query(...),
     sheet_id: Optional[int] = None,
 ):
-    """
-    Сравнивает цены на две даты. Возвращает только изменившиеся позиции.
-    """
     try:
         d_from = date.fromisoformat(date_from)
-        d_to = date.fromisoformat(date_to)
+        d_to   = date.fromisoformat(date_to)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Неверный формат даты. Используйте YYYY-MM-DD")
-
+        raise HTTPException(status_code=400, detail="Неверный формат даты (YYYY-MM-DD)")
     conn = get_conn()
     try:
         cur = conn.cursor()
+        sf = "AND s.id = %s" if sheet_id else ""
+        sp = [sheet_id] if sheet_id else []
 
-        sheet_filter = "AND s.id = %s" if sheet_id else ""
-        sheet_params = [sheet_id] if sheet_id else []
-
-        def fetch_prices_on_date(d: date):
+        def prices_on(d):
             cur.execute(f"""
                 SELECT p.article, p.name, s.sheet_name, ph.price_retail, ph.price_discounted
                 FROM price_history ph
                 JOIN products p ON ph.product_id = p.id
                 JOIN sheets s ON p.sheet_id = s.id
-                WHERE ph.valid_from <= %s
-                  AND (ph.valid_to >= %s OR ph.valid_to IS NULL)
-                  {sheet_filter}
-                ORDER BY p.article
-            """, [d, d] + sheet_params)
+                WHERE ph.valid_from <= %s AND (ph.valid_to >= %s OR ph.valid_to IS NULL) {sf}
+            """, [d, d] + sp)
             return {r[0]: r for r in cur.fetchall()}
 
-        prices_from = fetch_prices_on_date(d_from)
-        prices_to = fetch_prices_on_date(d_to)
-
-        all_articles = set(prices_from) | set(prices_to)
+        pf = prices_on(d_from)
+        pt = prices_on(d_to)
         result = []
-
-        for article in sorted(all_articles):
-            a = prices_from.get(article)
-            b = prices_to.get(article)
-
+        for art in sorted(set(pf) | set(pt)):
+            a, b = pf.get(art), pt.get(art)
             if a and b and float(a[3]) == float(b[3]):
-                continue  # цена не изменилась — пропускаем
-
+                continue
             result.append({
-                "article": article,
-                "name": (b or a)[1],
-                "sheet_name": (b or a)[2],
+                "article": art, "name": (b or a)[1], "sheet_name": (b or a)[2],
                 "price_from": float(a[3]) if a else None,
                 "price_discounted_from": float(a[4]) if a else None,
                 "price_to": float(b[3]) if b else None,
                 "price_discounted_to": float(b[4]) if b else None,
                 "change": "new" if not a else ("removed" if not b else "changed"),
             })
-
-        return {
-            "date_from": date_from,
-            "date_to": date_to,
-            "total_changed": len(result),
-            "items": result,
-        }
+        return {"date_from": date_from, "date_to": date_to,
+                "total_changed": len(result), "items": result}
     finally:
         conn.close()
 
 
-# ---------------------------------------------------------------------------
-# Эндпоинт — загрузка прайса
-# ---------------------------------------------------------------------------
+# ── Upload: плоский прайс ─────────────────────────────────────────────────────
 
-@app.post("/api/upload")
-async def upload_price(
+@app.post("/api/upload/flat")
+async def upload_flat(
     file: UploadFile = File(...),
-    sheet_name: str = Query(..., description="Имя листа в Excel"),
-    discount_percent: float = Query(..., description="Скидка в процентах"),
-    price_date: Optional[str] = Query(None, description="Дата прайса YYYY-MM-DD (опционально)"),
+    sheet_name: str = Query("", description="Имя листа (пусто = первый лист)"),
+    supplier_name: str = Query(..., description="Название поставщика (= имя листа в БД)"),
+    discount_percent: float = Query(0.0),
+    price_date: Optional[str] = Query(None),
 ):
-    """
-    Принимает xlsx-файл, парсит нужный лист и сохраняет цены в БД.
-    """
-    if not file.filename.endswith((".xlsx", ".xls")):
-        raise HTTPException(status_code=400, detail="Принимаются только .xlsx / .xls файлы")
+    """Загрузка плоского прайса (один лист, Valfex, Импульс и т.п.)."""
+    if not file.filename.lower().endswith((".xlsx", ".xls")):
+        raise HTTPException(status_code=400, detail="Только .xlsx / .xls")
 
-    # Сохраняем временный файл
     tmp_dir = tempfile.mkdtemp()
     tmp_path = os.path.join(tmp_dir, file.filename)
     try:
         with open(tmp_path, "wb") as f:
             shutil.copyfileobj(file.file, f)
 
-        # Определяем дату
-        if price_date:
-            try:
-                parsed_date = date.fromisoformat(price_date)
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Неверный формат даты")
-        else:
-            parsed_date = (
-                parse_date_from_filename(file.filename)
-                or parse_date_from_excel(tmp_path)
-                or date.today()
-            )
+        parsed_date = _resolve_date(price_date, file.filename, tmp_path)
+        sheet_arg   = sheet_name if sheet_name else 0
 
-        # Парсим и сохраняем
         conn = get_conn()
         try:
-            sheet_id = get_or_create_sheet(conn, sheet_name, discount_percent)
-            products = parse_rommer_sheet(tmp_path, sheet_name, sheet_id, discount_percent)
-
+            sheet_id, actual_discount = ensure_sheet_exists(conn, supplier_name, discount_percent)
+            products = parse_flat_sheet(tmp_path, sheet_arg, sheet_id, actual_discount)
             if not products:
-                raise HTTPException(status_code=422, detail="Товары не найдены. Проверьте имя листа.")
-
+                raise HTTPException(status_code=422, detail="Товары не найдены. Проверьте структуру файла.")
             stats = save_products_to_db(conn, products, parsed_date)
             conn.commit()
+            return {"success": True, "filename": file.filename,
+                    "supplier": supplier_name, "price_date": parsed_date.isoformat(),
+                    "stats": stats}
+        except HTTPException:
+            raise
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Ошибка загрузки: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            conn.close()
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
+
+# ── Upload: Терем (multi-sheet) ───────────────────────────────────────────────
+
+@app.get("/api/upload/terem/preview")
+async def terem_preview(file: UploadFile = File(...)):
+    """
+    Принимает файл Терема и возвращает список STOUT/ROMMER листов
+    с текущими скидками из БД (или 0 если лист новый).
+    Используется для показа формы перед загрузкой.
+    """
+    if not file.filename.lower().endswith((".xlsx", ".xls")):
+        raise HTTPException(status_code=400, detail="Только .xlsx / .xls")
+    tmp_dir = tempfile.mkdtemp()
+    tmp_path = os.path.join(tmp_dir, file.filename)
+    try:
+        with open(tmp_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        sheets_in_file = get_terem_sheets(tmp_path)
+        conn = get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT sheet_name, id, discount_percent FROM sheets WHERE sheet_name = ANY(%s)",
+                (sheets_in_file,)
+            )
+            db_sheets = {r[0]: {"id": r[1], "discount_percent": float(r[2] or 0)} for r in cur.fetchall()}
+        finally:
+            conn.close()
+        return {
+            "filename": file.filename,
+            "sheets": [
+                {"sheet_name": s,
+                 "sheet_id": db_sheets[s]["id"] if s in db_sheets else None,
+                 "discount_percent": db_sheets[s]["discount_percent"] if s in db_sheets else 0.0,
+                 "is_new": s not in db_sheets}
+                for s in sheets_in_file
+            ]
+        }
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+@app.post("/api/upload/terem")
+async def upload_terem(
+    file: UploadFile = File(...),
+    price_date: Optional[str] = Query(None),
+    sheet_discounts_json: str = Query(default="{}", description="JSON: {sheet_name: discount_percent}"),
+):
+    """
+    Загрузка файла Терема целиком.
+    sheet_discounts_json — JSON-строка со скидками по листам.
+    """
+    import json
+    try:
+        sheet_discounts = json.loads(sheet_discounts_json)
+    except Exception:
+        sheet_discounts = {}
+    if not file.filename.lower().endswith((".xlsx", ".xls")):
+        raise HTTPException(status_code=400, detail="Только .xlsx / .xls")
+    tmp_dir = tempfile.mkdtemp()
+    tmp_path = os.path.join(tmp_dir, file.filename)
+    try:
+        with open(tmp_path, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+
+        parsed_date = _resolve_date(price_date, file.filename, tmp_path)
+        sheets_in_file = get_terem_sheets(tmp_path)
+
+        conn = get_conn()
+        try:
+            # Получаем / создаём все листы, фиксируем скидки если переданы
+            sheet_ids   = {}
+            actual_disc = {}
+            for s in sheets_in_file:
+                disc = sheet_discounts.get(s)  # из формы
+                sid, saved_disc = ensure_sheet_exists(conn, s, disc or 0.0)
+                sheet_ids[s]   = sid
+                # Если скидка передана явно — сохраняем в БД
+                if disc is not None:
+                    update_sheet_discount(conn, sid, disc)
+                    actual_disc[s] = disc
+                else:
+                    actual_disc[s] = saved_disc
+
+            # Парсим все листы
+            all_products = parse_terem_file(tmp_path, actual_disc, sheet_ids)
+
+            total_stats = {'new': 0, 'changed': 0, 'unchanged': 0, 'total': 0}
+            sheet_stats = {}
+            for sheet_name, products in all_products.items():
+                if not products:
+                    sheet_stats[sheet_name] = {'total': 0}
+                    continue
+                st = save_products_to_db(conn, products, parsed_date)
+                sheet_stats[sheet_name] = st
+                for k in total_stats:
+                    total_stats[k] += st[k]
+
+            conn.commit()
             return {
-                "success": True,
-                "filename": file.filename,
-                "sheet_name": sheet_name,
+                "success": True, "filename": file.filename,
                 "price_date": parsed_date.isoformat(),
-                "stats": stats,
+                "sheets_processed": len(all_products),
+                "total_stats": total_stats,
+                "sheet_stats": sheet_stats,
             }
         except HTTPException:
             raise
         except Exception as e:
             conn.rollback()
-            logger.error(f"Ошибка при обработке файла: {e}", exc_info=True)
+            logger.error(f"Ошибка загрузки Терема: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
         finally:
             conn.close()
-
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-# ---------------------------------------------------------------------------
-# Фронтенд (отдаём HTML прямо из FastAPI)
-# ---------------------------------------------------------------------------
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _resolve_date(price_date_str, filename, file_path) -> date:
+    if price_date_str:
+        try:
+            return date.fromisoformat(price_date_str)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Неверный формат даты (YYYY-MM-DD)")
+    return (
+        parse_date_from_filename(filename)
+        or parse_date_from_excel(file_path)
+        or date.today()
+    )
+
+
+# ── Static / Health ───────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
 def index():
@@ -346,12 +392,8 @@ def index():
     if os.path.exists(html_path):
         with open(html_path, encoding="utf-8") as f:
             return f.read()
-    return HTMLResponse("<h1>Frontend not found</h1><p>Put index.html in scripts/static/</p>", status_code=404)
+    return HTMLResponse("<h1>Frontend not found</h1>", status_code=404)
 
-
-# ---------------------------------------------------------------------------
-# Health check (Render использует его для проверки живости сервиса)
-# ---------------------------------------------------------------------------
 
 @app.get("/health")
 def health():

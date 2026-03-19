@@ -6,3 +6,4 @@ boto3
 fastapi
 uvicorn
 python-multipart
+xlrd>=2.0.1

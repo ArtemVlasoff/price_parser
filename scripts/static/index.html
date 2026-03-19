@@ -8,227 +8,137 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
   :root {
-    --bg:       #0f0f0f;
-    --surface:  #161616;
-    --panel:    #1c1c1c;
-    --border:   #2a2a2a;
-    --border2:  #333;
-    --text:     #e8e8e8;
-    --muted:    #666;
-    --dim:      #444;
-    --accent:   #e8a020;
-    --accent2:  #c47a10;
-    --green:    #4ade80;
-    --red:      #f87171;
-    --blue:     #60a5fa;
-    --mono:     'IBM Plex Mono', monospace;
-    --sans:     'IBM Plex Sans', sans-serif;
+    --bg: #0f0f0f; --surface: #161616; --panel: #1c1c1c;
+    --border: #2a2a2a; --border2: #333; --text: #e8e8e8;
+    --muted: #666; --dim: #444; --accent: #e8a020; --accent2: #c47a10;
+    --green: #4ade80; --red: #f87171; --blue: #60a5fa; --yellow: #fbbf24;
+    --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif;
   }
-
-  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.5; }
-
-  /* Layout */
-  .layout { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: 48px 1fr; height: 100vh; }
-
-  /* Topbar */
-  .topbar {
-    grid-column: 1 / -1;
-    display: flex; align-items: center; gap: 16px;
-    padding: 0 24px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-  }
-  .topbar-logo { font-family: var(--mono); font-size: 13px; color: var(--accent); letter-spacing: 0.08em; }
-  .topbar-sep { flex: 1; }
-  .topbar-status { font-family: var(--mono); font-size: 11px; color: var(--muted); }
-  .topbar-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-right: 6px; animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-
-  /* Sidebar */
-  .sidebar {
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    padding: 20px 0;
-    display: flex; flex-direction: column; gap: 2px;
-  }
-  .nav-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 9px 20px;
-    cursor: pointer;
-    font-size: 13px; color: var(--muted);
-    border-left: 2px solid transparent;
-    transition: all 0.15s;
-    user-select: none;
-  }
-  .nav-item:hover { color: var(--text); background: var(--panel); }
-  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: var(--panel); }
-  .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
-  .nav-section { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; color: var(--dim); padding: 16px 20px 6px; text-transform: uppercase; }
-
-  /* Main */
-  .main { overflow-y: auto; background: var(--bg); }
-  .page { display: none; padding: 28px 32px; animation: fadein 0.2s; }
-  .page.active { display: block; }
-  @keyframes fadein { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
-
-  .page-header { margin-bottom: 24px; }
-  .page-title { font-family: var(--mono); font-size: 18px; font-weight: 500; color: var(--text); }
-  .page-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
-
-  /* Cards row */
-  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 16px 20px; }
-  .card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
-  .card-value { font-family: var(--mono); font-size: 22px; font-weight: 500; color: var(--accent); }
-  .card-sub { font-size: 11px; color: var(--dim); margin-top: 4px; }
-
-  /* Toolbar */
-  .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
-  .input {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
-    color: var(--text); font-family: var(--sans); font-size: 13px;
-    padding: 7px 12px; outline: none; transition: border-color 0.15s;
-  }
-  .input:focus { border-color: var(--accent2); }
-  .input::placeholder { color: var(--dim); }
-  select.input { cursor: pointer; }
-  .btn {
-    background: var(--accent); color: #000; font-family: var(--mono); font-size: 12px; font-weight: 500;
-    border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer;
-    transition: background 0.15s; white-space: nowrap;
-  }
-  .btn:hover { background: var(--accent2); }
-  .btn:disabled { background: var(--border); color: var(--muted); cursor: default; }
-  .btn-ghost {
-    background: transparent; color: var(--muted); border: 1px solid var(--border);
-    font-family: var(--mono); font-size: 12px; border-radius: 4px; padding: 7px 14px; cursor: pointer;
-    transition: all 0.15s;
-  }
-  .btn-ghost:hover { border-color: var(--dim); color: var(--text); }
-  .spacer { flex: 1; }
-
-  /* Table */
-  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
-  table { width: 100%; border-collapse: collapse; }
-  thead th {
-    font-family: var(--mono); font-size: 10px; font-weight: 500; text-transform: uppercase;
-    letter-spacing: 0.1em; color: var(--muted); padding: 10px 14px;
-    border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap;
-    background: var(--panel);
-  }
-  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
-  tbody tr:last-child { border-bottom: none; }
-  tbody tr:hover { background: var(--panel); }
-  td { padding: 9px 14px; font-size: 13px; }
-  td.mono { font-family: var(--mono); font-size: 12px; }
-  td.price { font-family: var(--mono); font-size: 13px; color: var(--text); }
-  td.discounted { font-family: var(--mono); font-size: 13px; color: var(--accent); }
-  td.muted { color: var(--muted); font-size: 12px; }
-
-  /* Tags */
-  .tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-family: var(--mono); font-size: 11px; }
-  .tag-green { background: #0d2318; color: var(--green); }
-  .tag-red { background: #200f0f; color: var(--red); }
-  .tag-amber { background: #1f1505; color: var(--accent); }
-
-  /* Pagination */
-  .pagination { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
-  .pagination span { font-family: var(--mono); font-size: 12px; color: var(--muted); }
-
-  /* Sheets grid */
-  .sheets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
-  .sheet-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
-    padding: 14px 16px; cursor: pointer; transition: border-color 0.15s;
-  }
-  .sheet-card:hover { border-color: var(--accent2); }
-  .sheet-card-name { font-size: 13px; font-weight: 500; margin-bottom: 8px; }
-  .sheet-card-meta { display: flex; justify-content: space-between; align-items: center; }
-  .sheet-card-discount { font-family: var(--mono); font-size: 12px; color: var(--accent); }
-  .sheet-card-date { font-size: 11px; color: var(--muted); }
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5}
+  .layout{display:grid;grid-template-columns:220px 1fr;grid-template-rows:48px 1fr;height:100vh}
+  .topbar{grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:0 24px;border-bottom:1px solid var(--border);background:var(--surface)}
+  .topbar-logo{font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:.08em}
+  .topbar-sep{flex:1}
+  .topbar-status{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .topbar-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .sidebar{background:var(--surface);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column;gap:2px}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;font-size:13px;color:var(--muted);border-left:2px solid transparent;transition:all .15s;user-select:none}
+  .nav-item:hover{color:var(--text);background:var(--panel)}
+  .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--panel)}
+  .nav-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+  .nav-section{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--dim);padding:16px 20px 6px;text-transform:uppercase}
+  .main{overflow-y:auto;background:var(--bg)}
+  .page{display:none;padding:28px 32px;animation:fadein .2s}
+  .page.active{display:block}
+  @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .page-title{font-family:var(--mono);font-size:18px;font-weight:500}
+  .page-sub{font-size:12px;color:var(--muted);margin-top:4px}
+  .page-header{margin-bottom:24px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:24px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px 20px}
+  .card-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .card-value{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--accent)}
+  .toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+  .input{background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--sans);font-size:13px;padding:7px 12px;outline:none;transition:border-color .15s}
+  .input:focus{border-color:var(--accent2)}
+  .input::placeholder{color:var(--dim)}
+  select.input{cursor:pointer}
+  .btn{background:var(--accent);color:#000;font-family:var(--mono);font-size:12px;font-weight:500;border:none;border-radius:4px;padding:8px 16px;cursor:pointer;transition:background .15s;white-space:nowrap}
+  .btn:hover{background:var(--accent2)}
+  .btn:disabled{background:var(--border);color:var(--muted);cursor:default}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);font-family:var(--mono);font-size:12px;border-radius:4px;padding:7px 14px;cursor:pointer;transition:all .15s}
+  .btn-ghost:hover{border-color:var(--dim);color:var(--text)}
+  .btn-sm{padding:4px 10px;font-size:11px}
+  .btn-danger{background:transparent;color:var(--red);border:1px solid #3a1515;font-family:var(--mono);font-size:11px;border-radius:4px;padding:4px 10px;cursor:pointer;transition:all .15s}
+  .btn-danger:hover{background:#1a0a0a}
+  .spacer{flex:1}
+  .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+  table{width:100%;border-collapse:collapse}
+  thead th{font-family:var(--mono);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;background:var(--panel)}
+  tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:hover{background:var(--panel)}
+  td{padding:9px 14px;font-size:13px}
+  td.mono{font-family:var(--mono);font-size:12px}
+  td.price{font-family:var(--mono)}
+  td.discounted{font-family:var(--mono);color:var(--accent)}
+  td.muted{color:var(--muted);font-size:12px}
+  .tag{display:inline-block;padding:2px 8px;border-radius:3px;font-family:var(--mono);font-size:11px}
+  .tag-green{background:#0d2318;color:var(--green)}
+  .tag-red{background:#200f0f;color:var(--red)}
+  .tag-amber{background:#1f1505;color:var(--accent)}
+  .tag-blue{background:#0a1628;color:var(--blue)}
+  .pagination{display:flex;align-items:center;gap:8px;margin-top:12px}
+  .pagination span{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .empty{text-align:center;padding:48px;color:var(--muted)}
+  .empty-icon{font-size:32px;margin-bottom:10px}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
 
   /* Upload */
-  .upload-zone {
-    border: 2px dashed var(--border2); border-radius: 8px; padding: 48px 24px;
-    text-align: center; cursor: pointer; transition: all 0.2s;
-    background: var(--surface); margin-bottom: 20px;
-  }
-  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: #1a1500; }
-  .upload-zone-icon { font-size: 32px; margin-bottom: 12px; }
-  .upload-zone-title { font-size: 15px; font-weight: 500; margin-bottom: 6px; }
-  .upload-zone-sub { font-size: 12px; color: var(--muted); }
-  .upload-fields { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-bottom: 16px; align-items: end; }
-  .field-group { display: flex; flex-direction: column; gap: 5px; }
-  .field-label { font-size: 11px; color: var(--muted); }
+  .upload-zone{border:2px dashed var(--border2);border-radius:8px;padding:40px 24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);margin-bottom:20px}
+  .upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:#1a1500}
+  .upload-zone-icon{font-size:28px;margin-bottom:10px}
+  .upload-zone-title{font-size:14px;font-weight:500;margin-bottom:4px}
+  .upload-zone-sub{font-size:12px;color:var(--muted)}
+  .field-group{display:flex;flex-direction:column;gap:5px}
+  .field-label{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+  .log{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.8;max-height:220px;overflow-y:auto}
+  .log-line{color:var(--muted)}
+  .log-line.ok{color:var(--green)}
+  .log-line.err{color:var(--red)}
+  .log-line.info{color:var(--accent)}
 
-  /* Progress / Log */
-  .log { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; font-family: var(--mono); font-size: 12px; line-height: 1.8; max-height: 200px; overflow-y: auto; }
-  .log-line { color: var(--muted); }
-  .log-line.ok { color: var(--green); }
-  .log-line.err { color: var(--red); }
-  .log-line.info { color: var(--accent); }
+  /* Supplier type tabs */
+  .tabs{display:flex;gap:2px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:3px;width:fit-content;margin-bottom:20px}
+  .tab{padding:6px 18px;border-radius:4px;cursor:pointer;font-family:var(--mono);font-size:12px;color:var(--muted);transition:all .15s;user-select:none}
+  .tab.active{background:var(--accent);color:#000;font-weight:500}
 
-  /* Compare diff */
-  .diff-up { color: var(--red); }
-  .diff-down { color: var(--green); }
-  .diff-new { color: var(--blue); }
+  /* Sheets table with inline discount edit */
+  .discount-input{width:70px;background:var(--panel);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:12px;padding:4px 8px;text-align:right;outline:none;transition:border-color .15s}
+  .discount-input:focus{border-color:var(--accent2)}
+  .save-disc-btn{opacity:0;transition:opacity .15s}
+  tr:hover .save-disc-btn{opacity:1}
 
-  /* History chart placeholder */
-  .history-article { font-family: var(--mono); font-size: 13px; color: var(--accent); margin-bottom: 16px; }
+  /* Terem preview table */
+  .preview-table-wrap{max-height:400px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:16px}
+  .badge-new{font-family:var(--mono);font-size:10px;padding:1px 6px;background:#0a1628;color:var(--blue);border-radius:3px;margin-left:6px}
 
-  /* Empty state */
-  .empty { text-align: center; padding: 48px; color: var(--muted); }
-  .empty-icon { font-size: 32px; margin-bottom: 10px; }
+  /* Diff colors */
+  .diff-up{color:var(--red)}
+  .diff-down{color:var(--green)}
+  .history-article{font-family:var(--mono);font-size:13px;color:var(--accent);margin-bottom:16px}
 
-  /* Loading */
-  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
-  @keyframes spin { to{transform:rotate(360deg)} }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+  ::-webkit-scrollbar-thumb:hover{background:var(--dim)}
 </style>
 </head>
 <body>
-
 <div class="layout">
 
-  <!-- Topbar -->
   <header class="topbar">
     <div class="topbar-logo">▸ ПРАЙС-МОНИТОР</div>
     <div class="topbar-sep"></div>
     <div class="topbar-status" id="conn-status"><span class="topbar-dot"></span>подключено</div>
   </header>
 
-  <!-- Sidebar -->
   <nav class="sidebar">
     <div class="nav-section">Данные</div>
-    <div class="nav-item active" data-page="prices">
-      <span class="nav-icon">▤</span> Текущие цены
-    </div>
-    <div class="nav-item" data-page="history">
-      <span class="nav-icon">◷</span> История цен
-    </div>
-    <div class="nav-item" data-page="compare">
-      <span class="nav-icon">⇄</span> Сравнение дат
-    </div>
+    <div class="nav-item active" data-page="prices"><span class="nav-icon">▤</span> Текущие цены</div>
+    <div class="nav-item" data-page="history"><span class="nav-icon">◷</span> История цен</div>
+    <div class="nav-item" data-page="compare"><span class="nav-icon">⇄</span> Сравнение дат</div>
     <div class="nav-section">Управление</div>
-    <div class="nav-item" data-page="sheets">
-      <span class="nav-icon">◈</span> Поставщики
-    </div>
-    <div class="nav-item" data-page="upload">
-      <span class="nav-icon">↑</span> Загрузить прайс
-    </div>
+    <div class="nav-item" data-page="sheets"><span class="nav-icon">◈</span> Поставщики</div>
+    <div class="nav-item" data-page="upload"><span class="nav-icon">↑</span> Загрузить прайс</div>
   </nav>
 
-  <!-- Main content -->
   <main class="main">
 
-    <!-- ── Текущие цены ── -->
+    <!-- ── Текущие цены ─────────────────────────────────── -->
     <section class="page active" id="page-prices">
       <div class="page-header">
         <div class="page-title">Текущие цены</div>
@@ -236,7 +146,7 @@
       </div>
       <div class="cards" id="prices-cards"></div>
       <div class="toolbar">
-        <input class="input" id="search-input" placeholder="Поиск по артикулу или названию..." style="width:280px" oninput="debouncedSearch()">
+        <input class="input" id="search-input" placeholder="Артикул, код или наименование..." style="width:300px" oninput="debouncedSearch()">
         <select class="input" id="sheet-filter" onchange="loadPrices()" style="width:200px">
           <option value="">Все поставщики</option>
         </select>
@@ -245,17 +155,10 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th>Артикул</th>
-              <th>Наименование</th>
-              <th>Поставщик</th>
-              <th>Цена РРЦ</th>
-              <th>Цена со скидкой</th>
-              <th>Скидка</th>
-              <th>С даты</th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th>Артикул</th><th>Код</th><th>Наименование</th><th>Поставщик</th>
+            <th>Цена РРЦ</th><th>Цена со скидкой</th><th>Скидка</th><th>С даты</th>
+          </tr></thead>
           <tbody id="prices-tbody"></tbody>
         </table>
       </div>
@@ -266,34 +169,34 @@
       </div>
     </section>
 
-    <!-- ── История цен ── -->
+    <!-- ── История цен ──────────────────────────────────── -->
     <section class="page" id="page-history">
       <div class="page-header">
         <div class="page-title">История цен</div>
         <div class="page-sub">Изменения по конкретному артикулу</div>
       </div>
       <div class="toolbar">
-        <input class="input" id="history-article-input" placeholder="Введите артикул, например RRS-2010-11505..." style="width:380px">
+        <input class="input" id="history-input" placeholder="Введите артикул..." style="width:360px">
         <button class="btn" onclick="loadHistory()">Показать</button>
       </div>
       <div id="history-content">
-        <div class="empty"><div class="empty-icon">◷</div>Введите артикул для просмотра истории</div>
+        <div class="empty"><div class="empty-icon">◷</div>Введите артикул</div>
       </div>
     </section>
 
-    <!-- ── Сравнение дат ── -->
+    <!-- ── Сравнение дат ────────────────────────────────── -->
     <section class="page" id="page-compare">
       <div class="page-header">
         <div class="page-title">Сравнение дат</div>
-        <div class="page-sub">Посмотрите какие цены изменились между двумя датами</div>
+        <div class="page-sub">Какие цены изменились между двумя датами</div>
       </div>
       <div class="toolbar">
         <div class="field-group">
-          <label class="field-label">ДАТА А (было)</label>
+          <label class="field-label">Дата А (было)</label>
           <input class="input" type="date" id="compare-from">
         </div>
         <div class="field-group">
-          <label class="field-label">ДАТА Б (стало)</label>
+          <label class="field-label">Дата Б (стало)</label>
           <input class="input" type="date" id="compare-to">
         </div>
         <select class="input" id="compare-sheet" style="align-self:flex-end">
@@ -302,53 +205,103 @@
         <button class="btn" style="align-self:flex-end" onclick="loadCompare()">Сравнить</button>
       </div>
       <div id="compare-content">
-        <div class="empty"><div class="empty-icon">⇄</div>Выберите даты для сравнения</div>
+        <div class="empty"><div class="empty-icon">⇄</div>Выберите даты</div>
       </div>
     </section>
 
-    <!-- ── Поставщики ── -->
+    <!-- ── Поставщики ───────────────────────────────────── -->
     <section class="page" id="page-sheets">
       <div class="page-header">
-        <div class="page-title">Поставщики</div>
-        <div class="page-sub">Все листы с данными о последней загрузке</div>
+        <div class="page-title">Поставщики / Листы</div>
+        <div class="page-sub">Управление скидками для каждого листа</div>
       </div>
-      <div class="sheets-grid" id="sheets-grid">
-        <div class="empty"><div class="spinner"></div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Лист / Поставщик</th><th>Товаров</th><th>Скидка, %</th>
+            <th>Последнее обновление</th><th></th>
+          </tr></thead>
+          <tbody id="sheets-tbody">
+            <tr><td colspan="5" style="text-align:center;padding:32px">
+              <div class="spinner"></div>
+            </td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
-    <!-- ── Загрузить прайс ── -->
+    <!-- ── Загрузить прайс ──────────────────────────────── -->
     <section class="page" id="page-upload">
       <div class="page-header">
         <div class="page-title">Загрузить прайс</div>
-        <div class="page-sub">Загрузите .xlsx файл для обновления цен в базе</div>
+        <div class="page-sub">Выберите тип прайса и загрузите файл</div>
       </div>
 
+      <div class="tabs">
+        <div class="tab active" data-type="terem" onclick="switchType('terem')">Терем (STOUT/ROMMER)</div>
+        <div class="tab" data-type="flat" onclick="switchType('flat')">Плоский прайс</div>
+      </div>
+
+      <!-- Зона загрузки файла -->
       <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
         <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none" onchange="onFileSelected(this)">
         <div class="upload-zone-icon">↑</div>
         <div class="upload-zone-title" id="upload-zone-title">Перетащите файл или нажмите для выбора</div>
-        <div class="upload-zone-sub">.xlsx / .xls — прайс с листами поставщиков</div>
+        <div class="upload-zone-sub">.xlsx / .xls</div>
       </div>
 
-      <div class="upload-fields">
-        <div class="field-group">
-          <label class="field-label">ЛИСТ В EXCEL</label>
-          <input class="input" id="upload-sheet" placeholder="Rommer СПР (Россия)" value="Rommer СПР (Россия)">
+      <!-- Блок для плоского прайса -->
+      <div id="flat-fields" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;margin-bottom:16px;align-items:end">
+          <div class="field-group">
+            <label class="field-label">Название поставщика (в БД)</label>
+            <input class="input" id="flat-supplier" placeholder="Valfex">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Имя листа (пусто = первый)</label>
+            <input class="input" id="flat-sheet" placeholder="Оставьте пустым">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Скидка % (0 = из файла)</label>
+            <input class="input" id="flat-discount" type="number" value="0" min="0" max="100">
+          </div>
+          <button class="btn" id="flat-btn" onclick="uploadFlat()" disabled>Загрузить</button>
         </div>
-        <div class="field-group">
-          <label class="field-label">СКИДКА %</label>
-          <input class="input" id="upload-discount" type="number" placeholder="62" value="62" min="0" max="99">
+        <div class="field-group" style="margin-bottom:16px;max-width:220px">
+          <label class="field-label">Дата прайса (авто если пусто)</label>
+          <input class="input" type="date" id="flat-date">
         </div>
-        <button class="btn" id="upload-btn" onclick="uploadFile()" disabled>Загрузить</button>
       </div>
 
-      <div class="field-group" style="margin-bottom:16px">
-        <label class="field-label">ДАТА ПРАЙСА (опционально — автоопределение из имени файла)</label>
-        <input class="input" id="upload-date" type="date" style="width:200px">
+      <!-- Блок для Терема -->
+      <div id="terem-fields" style="display:none">
+        <div style="display:flex;gap:12px;margin-bottom:16px;align-items:flex-end">
+          <div class="field-group">
+            <label class="field-label">Дата прайса (авто если пусто)</label>
+            <input class="input" type="date" id="terem-date">
+          </div>
+          <button class="btn" id="terem-preview-btn" onclick="teremPreview()" disabled>
+            Просмотр листов
+          </button>
+        </div>
+
+        <!-- Таблица листов с превью -->
+        <div id="terem-sheets-wrap" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div class="field-label">ЛИСТЫ В ФАЙЛЕ — ПРОВЕРЬТЕ СКИДКИ ПЕРЕД ЗАГРУЗКОЙ</div>
+            <button class="btn" id="terem-upload-btn" onclick="uploadTerem()">Загрузить все листы</button>
+          </div>
+          <div class="preview-table-wrap">
+            <table>
+              <thead><tr><th>Лист</th><th style="width:120px">Скидка, %</th><th>Статус в БД</th></tr></thead>
+              <tbody id="terem-sheets-tbody"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
-      <div id="upload-log" style="display:none">
+      <!-- Лог -->
+      <div id="upload-log" style="display:none;margin-top:16px">
         <div class="field-label" style="margin-bottom:6px">ЛОГ ЗАГРУЗКИ</div>
         <div class="log" id="log-content"></div>
       </div>
@@ -358,196 +311,189 @@
 </div>
 
 <script>
-// ── Config ──────────────────────────────────────────────────────────────────
-// Если фронтенд открывается с того же домена — relative URL. 
-// Если отдельно — замени на: const API = 'https://your-app.onrender.com'
 const API = '';
-
-// ── State ───────────────────────────────────────────────────────────────────
 let currentPage = 0;
 const PAGE_SIZE = 100;
 let totalItems = 0;
 let sheets = [];
 let searchTimer = null;
+let selectedFile = null;
+let uploadType = 'terem';
+let teremPreviewData = null;
 
-// ── Navigation ───────────────────────────────────────────────────────────────
+// ── Nav ──────────────────────────────────────────────────────────────────────
 document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     item.classList.add('active');
     document.getElementById('page-' + item.dataset.page).classList.add('active');
-    if (item.dataset.page === 'sheets') loadSheets();
+    if (item.dataset.page === 'sheets') renderSheets();
   });
 });
 
-// ── API helper ───────────────────────────────────────────────────────────────
-async function apiFetch(path) {
-  const res = await fetch(API + path);
+// ── API ──────────────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const res = await fetch(API + path, opts);
   if (!res.ok) {
-    const err = await res.json().catch(() => ({detail: res.statusText}));
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(err.detail || res.statusText);
   }
   return res.json();
 }
 
-// ── Format helpers ────────────────────────────────────────────────────────────
-function fmtPrice(n) {
-  return n == null ? '—' : new Intl.NumberFormat('ru-RU', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(n) + ' ₽';
-}
-function fmtDate(s) {
-  if (!s) return '—';
-  return new Date(s).toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric'});
-}
-function fmtDatetime(s) {
-  if (!s) return '—';
-  return new Date(s).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'});
-}
+// ── Format ───────────────────────────────────────────────────────────────────
+const fmtPrice = n => n == null ? '—' :
+  new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' ₽';
+const fmtDate  = s => s ? new Date(s).toLocaleDateString('ru-RU') : '—';
+const fmtDT    = s => s ? new Date(s).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
 
-// ── Sheets ────────────────────────────────────────────────────────────────────
+// ── Init sheets ──────────────────────────────────────────────────────────────
 async function initSheets() {
   try {
-    sheets = await apiFetch('/api/sheets');
-    
-    // Populate selects
-    [document.getElementById('sheet-filter'), document.getElementById('compare-sheet')].forEach(sel => {
+    sheets = await api('/api/sheets');
+    ['sheet-filter', 'compare-sheet'].forEach(id => {
+      const sel = document.getElementById(id);
       const cur = sel.value;
       while (sel.options.length > 1) sel.remove(1);
-      sheets.forEach(s => {
-        const opt = new Option(s.sheet_name, s.id);
-        sel.appendChild(opt);
-      });
+      sheets.forEach(s => sel.appendChild(new Option(s.sheet_name, s.id)));
       sel.value = cur;
     });
-
-    // Stats cards
     const total = sheets.length;
-    const active = sheets.filter(s => s.is_active !== false).length;
     const lastUp = sheets.map(s => s.last_updated).filter(Boolean).sort().pop();
     document.getElementById('prices-cards').innerHTML = `
-      <div class="card">
-        <div class="card-label">Поставщиков</div>
-        <div class="card-value">${total}</div>
-      </div>
-      <div class="card">
-        <div class="card-label">Активных</div>
-        <div class="card-value">${active}</div>
-      </div>
-      <div class="card">
-        <div class="card-label">Последнее обновление</div>
-        <div class="card-value" style="font-size:15px">${lastUp ? fmtDatetime(lastUp) : '—'}</div>
-      </div>
-    `;
-    if (lastUp) {
-      document.getElementById('prices-updated').textContent = 'Актуально на ' + fmtDatetime(lastUp);
-    }
-  } catch(e) {
+      <div class="card"><div class="card-label">Листов</div>
+        <div class="card-value">${total}</div></div>
+      <div class="card"><div class="card-label">Последнее обновление</div>
+        <div class="card-value" style="font-size:14px">${lastUp ? fmtDT(lastUp) : '—'}</div></div>`;
+    if (lastUp) document.getElementById('prices-updated').textContent = 'Актуально на ' + fmtDT(lastUp);
+    document.getElementById('conn-status').innerHTML = '<span class="topbar-dot"></span>подключено';
+  } catch (e) {
     document.getElementById('conn-status').innerHTML = '<span style="color:var(--red)">● ошибка подключения</span>';
   }
 }
 
-function loadSheets() {
-  const grid = document.getElementById('sheets-grid');
-  if (!sheets.length) { grid.innerHTML = '<div class="empty"><div class="spinner"></div></div>'; return; }
-  grid.innerHTML = sheets.map(s => `
-    <div class="sheet-card" onclick="openSheetPrices(${s.id})">
-      <div class="sheet-card-name">${s.sheet_name}</div>
-      <div class="sheet-card-meta">
-        <div class="sheet-card-discount">−${s.discount_percent ?? 0}%</div>
-        <div class="sheet-card-date">${s.last_updated ? fmtDatetime(s.last_updated) : 'нет данных'}</div>
-      </div>
-    </div>
+// ── Sheets page ──────────────────────────────────────────────────────────────
+function renderSheets() {
+  if (!sheets.length) { initSheets().then(renderSheets); return; }
+  const tbody = document.getElementById('sheets-tbody');
+  tbody.innerHTML = sheets.map(s => `
+    <tr data-sheet-id="${s.id}">
+      <td style="cursor:pointer;color:var(--blue)" onclick="filterBySheet(${s.id})">${s.sheet_name}</td>
+      <td class="mono">${s.product_count ?? '—'}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input class="discount-input" type="number" min="0" max="100" step="0.1"
+            value="${s.discount_percent ?? 0}"
+            onchange="markDiscountChanged(this)"
+            id="disc-${s.id}">
+          <button class="btn btn-sm save-disc-btn" id="save-btn-${s.id}"
+            onclick="saveDiscount(${s.id})">Сохранить</button>
+        </div>
+      </td>
+      <td class="muted">${fmtDT(s.last_updated)}</td>
+      <td></td>
+    </tr>
   `).join('');
 }
 
-function openSheetPrices(sheetId) {
+function markDiscountChanged(input) {
+  const id = input.closest('tr').dataset.sheetId;
+  document.getElementById(`save-btn-${id}`).style.opacity = '1';
+}
+
+async function saveDiscount(sheetId) {
+  const input = document.getElementById(`disc-${sheetId}`);
+  const btn   = document.getElementById(`save-btn-${sheetId}`);
+  const val   = parseFloat(input.value);
+  if (isNaN(val) || val < 0 || val > 100) { alert('Скидка от 0 до 100'); return; }
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    await api(`/api/sheets/${sheetId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ discount_percent: val })
+    });
+    btn.textContent = '✓';
+    btn.style.opacity = '0';
+    // Обновляем локально
+    const s = sheets.find(x => x.id === sheetId);
+    if (s) s.discount_percent = val;
+    setTimeout(() => { btn.textContent = 'Сохранить'; btn.disabled = false; }, 1500);
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+    btn.textContent = 'Сохранить';
+    btn.disabled = false;
+  }
+}
+
+function filterBySheet(sheetId) {
   document.getElementById('sheet-filter').value = sheetId;
   document.querySelector('[data-page="prices"]').click();
   currentPage = 0;
   loadPrices();
 }
 
-// ── Prices ────────────────────────────────────────────────────────────────────
+// ── Prices ───────────────────────────────────────────────────────────────────
 async function loadPrices() {
-  const search = document.getElementById('search-input').value.trim();
+  const search  = document.getElementById('search-input').value.trim();
   const sheetId = document.getElementById('sheet-filter').value;
-  const offset = currentPage * PAGE_SIZE;
-
-  let url = `/api/prices?limit=${PAGE_SIZE}&offset=${offset}`;
-  if (search) url += `&search=${encodeURIComponent(search)}`;
+  let url = `/api/prices?limit=${PAGE_SIZE}&offset=${currentPage * PAGE_SIZE}`;
+  if (search)  url += `&search=${encodeURIComponent(search)}`;
   if (sheetId) url += `&sheet_id=${sheetId}`;
-
   const tbody = document.getElementById('prices-tbody');
-  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)"><div class="spinner"></div></td></tr>';
-
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px"><div class="spinner"></div></td></tr>';
   try {
-    const data = await apiFetch(url);
+    const data = await api(url);
     totalItems = data.total;
-
     document.getElementById('prices-count').textContent = `${totalItems.toLocaleString('ru-RU')} позиций`;
-
     if (!data.items.length) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted)">Ничего не найдено</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">Ничего не найдено</td></tr>';
     } else {
       tbody.innerHTML = data.items.map(p => `
         <tr>
           <td class="mono" style="cursor:pointer;color:var(--blue)" onclick="openHistory('${p.article}')">${p.article}</td>
-          <td style="max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${p.name}">${p.name}</td>
+          <td class="mono muted">${p.code || '—'}</td>
+          <td style="max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${p.name}">${p.name}</td>
           <td class="muted">${p.sheet_name}</td>
           <td class="price">${fmtPrice(p.price_retail)}</td>
           <td class="discounted">${fmtPrice(p.price_discounted)}</td>
-          <td class="mono" style="color:var(--muted)">−${p.discount_applied}%</td>
+          <td class="mono muted">−${p.discount_applied}%</td>
           <td class="muted">${fmtDate(p.valid_from)}</td>
-        </tr>
-      `).join('');
+        </tr>`).join('');
     }
-
     updatePagination();
-  } catch(e) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--red)">${e.message}</td></tr>`;
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--red)">${e.message}</td></tr>`;
   }
 }
 
 function updatePagination() {
-  const totalPages = Math.ceil(totalItems / PAGE_SIZE);
-  document.getElementById('page-info').textContent = totalPages > 1 ? `стр. ${currentPage + 1} из ${totalPages}` : '';
+  const total = Math.ceil(totalItems / PAGE_SIZE);
+  document.getElementById('page-info').textContent = total > 1 ? `стр. ${currentPage + 1} из ${total}` : '';
   document.getElementById('btn-prev').disabled = currentPage === 0;
-  document.getElementById('btn-next').disabled = (currentPage + 1) >= totalPages;
+  document.getElementById('btn-next').disabled = (currentPage + 1) >= total;
 }
-
-function changePage(dir) {
-  currentPage += dir;
-  loadPrices();
-  document.getElementById('page-prices').scrollTo(0, 0);
-}
-
+function changePage(d) { currentPage += d; loadPrices(); }
 function debouncedSearch() {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => { currentPage = 0; loadPrices(); }, 350);
 }
 
-// ── History ───────────────────────────────────────────────────────────────────
+// ── History ──────────────────────────────────────────────────────────────────
 function openHistory(article) {
   document.querySelector('[data-page="history"]').click();
-  document.getElementById('history-article-input').value = article;
+  document.getElementById('history-input').value = article;
   loadHistory();
 }
-
 async function loadHistory() {
-  const article = document.getElementById('history-article-input').value.trim();
+  const article = document.getElementById('history-input').value.trim();
   if (!article) return;
-
-  const container = document.getElementById('history-content');
-  container.innerHTML = '<div style="padding:24px;text-align:center"><div class="spinner"></div></div>';
-
+  const cont = document.getElementById('history-content');
+  cont.innerHTML = '<div style="padding:24px;text-align:center"><div class="spinner"></div></div>';
   try {
-    const data = await apiFetch(`/api/prices/history?article=${encodeURIComponent(article)}`);
-
-    if (!data.length) {
-      container.innerHTML = '<div class="empty">Нет данных по этому артикулу</div>';
-      return;
-    }
-
+    const data = await api(`/api/prices/history?article=${encodeURIComponent(article)}`);
     const rows = data.map((h, i) => {
       const prev = data[i + 1];
       let diff = '';
@@ -557,117 +503,77 @@ async function loadHistory() {
           ? `<span class="diff-up">↑ ${pct}%</span>`
           : `<span class="diff-down">↓ ${Math.abs(pct)}%</span>`;
       }
-      return `
-        <tr>
-          <td class="mono">${fmtDate(h.valid_from)}</td>
-          <td class="mono">${h.valid_to ? fmtDate(h.valid_to) : '∞ сейчас'}</td>
-          <td class="price">${fmtPrice(h.price_retail)}</td>
-          <td class="discounted">${fmtPrice(h.price_discounted)}</td>
-          <td class="mono" style="color:var(--muted)">−${h.discount_applied}%</td>
-          <td>${diff}</td>
-          <td>${h.is_current ? '<span class="tag tag-green">актуально</span>' : '<span class="tag" style="background:var(--panel);color:var(--muted)">истёк</span>'}</td>
-        </tr>
-      `;
+      return `<tr>
+        <td class="mono">${fmtDate(h.valid_from)}</td>
+        <td class="mono">${h.valid_to ? fmtDate(h.valid_to) : '∞'}</td>
+        <td class="price">${fmtPrice(h.price_retail)}</td>
+        <td class="discounted">${fmtPrice(h.price_discounted)}</td>
+        <td class="mono muted">−${h.discount_applied}%</td>
+        <td>${diff}</td>
+        <td>${h.is_current ? '<span class="tag tag-green">актуально</span>' : '<span class="tag" style="background:var(--panel);color:var(--muted)">истёк</span>'}</td>
+      </tr>`;
     }).join('');
-
-    container.innerHTML = `
+    cont.innerHTML = `
       <div class="history-article">Артикул: ${article}</div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>С даты</th><th>По дату</th>
-              <th>Цена РРЦ</th><th>Цена со скидкой</th>
-              <th>Скидка</th><th>Изменение</th><th>Статус</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-    `;
-  } catch(e) {
-    container.innerHTML = `<div class="empty" style="color:var(--red)">${e.message}</div>`;
+      <div class="table-wrap"><table>
+        <thead><tr><th>С даты</th><th>По дату</th><th>Цена РРЦ</th><th>Со скидкой</th><th>Скидка</th><th>Изменение</th><th>Статус</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`;
+  } catch (e) {
+    cont.innerHTML = `<div class="empty" style="color:var(--red)">${e.message}</div>`;
   }
 }
 
-// ── Compare ───────────────────────────────────────────────────────────────────
+// ── Compare ──────────────────────────────────────────────────────────────────
 async function loadCompare() {
   const from = document.getElementById('compare-from').value;
-  const to = document.getElementById('compare-to').value;
-  const sheetId = document.getElementById('compare-sheet').value;
-  const container = document.getElementById('compare-content');
-
-  if (!from || !to) {
-    container.innerHTML = '<div class="empty" style="color:var(--red)">Укажите обе даты</div>';
-    return;
-  }
-
-  container.innerHTML = '<div style="padding:24px;text-align:center"><div class="spinner"></div></div>';
-
+  const to   = document.getElementById('compare-to').value;
+  const sid  = document.getElementById('compare-sheet').value;
+  const cont = document.getElementById('compare-content');
+  if (!from || !to) { cont.innerHTML = '<div class="empty" style="color:var(--red)">Укажите обе даты</div>'; return; }
+  cont.innerHTML = '<div style="padding:24px;text-align:center"><div class="spinner"></div></div>';
   try {
     let url = `/api/prices/compare?date_from=${from}&date_to=${to}`;
-    if (sheetId) url += `&sheet_id=${sheetId}`;
-    const data = await apiFetch(url);
-
+    if (sid) url += `&sheet_id=${sid}`;
+    const data = await api(url);
     if (!data.items.length) {
-      container.innerHTML = '<div class="empty"><div class="empty-icon">✓</div>Цены не изменились между выбранными датами</div>';
-      return;
+      cont.innerHTML = '<div class="empty"><div class="empty-icon">✓</div>Цены не изменились</div>'; return;
     }
-
-    const changeTag = c => ({
-      'new': '<span class="tag tag-green">Новый</span>',
-      'removed': '<span class="tag tag-red">Снят</span>',
-      'changed': '<span class="tag tag-amber">Изменён</span>',
-    }[c] || c);
-
+    const tag = c => ({ new:'<span class="tag tag-blue">Новый</span>', removed:'<span class="tag tag-red">Снят</span>', changed:'<span class="tag tag-amber">Изменён</span>' }[c] || c);
     const rows = data.items.map(d => {
-      const diff = d.price_from && d.price_to
-        ? (d.price_to - d.price_from)
-        : null;
+      const diff = d.price_from && d.price_to ? d.price_to - d.price_from : null;
       const diffEl = diff == null ? '' : diff > 0
         ? `<span class="diff-up">+${fmtPrice(diff)}</span>`
         : `<span class="diff-down">${fmtPrice(diff)}</span>`;
-
       return `<tr>
         <td class="mono" style="color:var(--blue);cursor:pointer" onclick="openHistory('${d.article}')">${d.article}</td>
-        <td style="max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${d.name}">${d.name}</td>
+        <td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${d.name}">${d.name}</td>
         <td class="muted">${d.sheet_name}</td>
         <td class="price">${d.price_from ? fmtPrice(d.price_from) : '—'}</td>
         <td class="price">${d.price_to ? fmtPrice(d.price_to) : '—'}</td>
-        <td class="mono">${diffEl}</td>
-        <td>${changeTag(d.change)}</td>
-      </tr>`;
+        <td>${diffEl}</td><td>${tag(d.change)}</td></tr>`;
     }).join('');
-
-    const changed = data.items.filter(i => i.change === 'changed').length;
-    const added = data.items.filter(i => i.change === 'new').length;
-    const removed = data.items.filter(i => i.change === 'removed').length;
-
-    container.innerHTML = `
+    const ch = data.items.filter(i=>i.change==='changed').length;
+    const ad = data.items.filter(i=>i.change==='new').length;
+    const rm = data.items.filter(i=>i.change==='removed').length;
+    cont.innerHTML = `
       <div class="cards" style="margin-bottom:16px">
-        <div class="card"><div class="card-label">Изменено</div><div class="card-value" style="color:var(--accent)">${changed}</div></div>
-        <div class="card"><div class="card-label">Добавлено</div><div class="card-value" style="color:var(--green)">${added}</div></div>
-        <div class="card"><div class="card-label">Снято</div><div class="card-value" style="color:var(--red)">${removed}</div></div>
+        <div class="card"><div class="card-label">Изменено</div><div class="card-value" style="color:var(--accent)">${ch}</div></div>
+        <div class="card"><div class="card-label">Добавлено</div><div class="card-value" style="color:var(--green)">${ad}</div></div>
+        <div class="card"><div class="card-label">Снято</div><div class="card-value" style="color:var(--red)">${rm}</div></div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Артикул</th><th>Наименование</th><th>Поставщик</th>
-              <th>Было (${fmtDate(from)})</th><th>Стало (${fmtDate(to)})</th>
-              <th>Разница</th><th>Статус</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-    `;
-  } catch(e) {
-    container.innerHTML = `<div class="empty" style="color:var(--red)">${e.message}</div>`;
+      <div class="table-wrap"><table>
+        <thead><tr><th>Артикул</th><th>Наименование</th><th>Поставщик</th>
+          <th>Было (${fmtDate(from)})</th><th>Стало (${fmtDate(to)})</th>
+          <th>Разница</th><th>Статус</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`;
+  } catch (e) {
+    cont.innerHTML = `<div class="empty" style="color:var(--red)">${e.message}</div>`;
   }
 }
 
-// ── Upload ────────────────────────────────────────────────────────────────────
+// ── Upload: общее ─────────────────────────────────────────────────────────────
 const zone = document.getElementById('upload-zone');
 zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
 zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
@@ -677,15 +583,31 @@ zone.addEventListener('drop', e => {
   if (f) setFile(f);
 });
 
-let selectedFile = null;
 function setFile(f) {
   selectedFile = f;
   document.getElementById('upload-zone-title').textContent = `✓ ${f.name}`;
-  document.getElementById('upload-btn').disabled = false;
+  teremPreviewData = null;
+  document.getElementById('terem-sheets-wrap').style.display = 'none';
+  if (uploadType === 'terem') {
+    document.getElementById('terem-preview-btn').disabled = false;
+  } else {
+    document.getElementById('flat-btn').disabled = false;
+  }
 }
-function onFileSelected(input) {
-  if (input.files[0]) setFile(input.files[0]);
+function onFileSelected(input) { if (input.files[0]) setFile(input.files[0]); }
+
+function switchType(type) {
+  uploadType = type;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.type === type));
+  document.getElementById('terem-fields').style.display = type === 'terem' ? 'block' : 'none';
+  document.getElementById('flat-fields').style.display  = type === 'flat'  ? 'block' : 'none';
+  if (selectedFile) {
+    document.getElementById('terem-preview-btn').disabled = type !== 'terem';
+    document.getElementById('flat-btn').disabled = type !== 'flat';
+  }
 }
+// Показываем terem по умолчанию
+switchType('terem');
 
 function log(text, type = '') {
   const el = document.getElementById('log-content');
@@ -695,74 +617,126 @@ function log(text, type = '') {
   el.appendChild(line);
   el.scrollTop = el.scrollHeight;
 }
+function showLog() { document.getElementById('upload-log').style.display = 'block'; document.getElementById('log-content').innerHTML = ''; }
 
-async function uploadFile() {
+// ── Upload: Терем ─────────────────────────────────────────────────────────────
+async function teremPreview() {
   if (!selectedFile) return;
+  const btn = document.getElementById('terem-preview-btn');
+  btn.disabled = true; btn.textContent = '...';
+  showLog();
+  log('Анализ файла...', 'info');
+  try {
+    const form = new FormData();
+    form.append('file', selectedFile);
+    const data = await api('/api/upload/terem/preview', { method: 'POST', body: form });
+    teremPreviewData = data;
+    log(`Найдено листов STOUT/ROMMER: ${data.sheets.length}`, 'ok');
 
-  const sheetName = document.getElementById('upload-sheet').value.trim();
-  const discount = document.getElementById('upload-discount').value;
-  const dateVal = document.getElementById('upload-date').value;
-
-  if (!sheetName || !discount) {
-    alert('Укажите лист и скидку'); return;
+    const tbody = document.getElementById('terem-sheets-tbody');
+    tbody.innerHTML = data.sheets.map((s, i) => `
+      <tr>
+        <td>${s.sheet_name}${s.is_new ? '<span class="badge-new">новый</span>' : ''}</td>
+        <td><input class="discount-input" type="number" min="0" max="100" step="0.1"
+          id="td-disc-${i}" value="${s.discount_percent}"></td>
+        <td>${s.is_new
+          ? '<span class="tag tag-blue">Будет создан</span>'
+          : '<span class="tag tag-green">Есть в БД</span>'}</td>
+      </tr>`).join('');
+    document.getElementById('terem-sheets-wrap').style.display = 'block';
+  } catch (e) {
+    log('Ошибка: ' + e.message, 'err');
+  } finally {
+    btn.textContent = 'Просмотр листов'; btn.disabled = false;
   }
+}
 
-  document.getElementById('upload-log').style.display = 'block';
-  document.getElementById('log-content').innerHTML = '';
-  document.getElementById('upload-btn').disabled = true;
+async function uploadTerem() {
+  if (!selectedFile || !teremPreviewData) return;
+  const btn = document.getElementById('terem-upload-btn');
+  btn.disabled = true; btn.textContent = '...';
+  showLog();
+  log('Загрузка файла Терема...', 'info');
 
-  log('Отправка файла на сервер...', 'info');
+  // Собираем скидки из таблицы превью
+  const discounts = {};
+  teremPreviewData.sheets.forEach((s, i) => {
+    const v = parseFloat(document.getElementById(`td-disc-${i}`).value);
+    if (!isNaN(v)) discounts[s.sheet_name] = v;
+  });
+
+  const dateVal = document.getElementById('terem-date').value;
+  const discountsJson = JSON.stringify(discounts);
+  let url = `/api/upload/terem?sheet_discounts_json=${encodeURIComponent(discountsJson)}`;
+  if (dateVal) url += `&price_date=${dateVal}`;
 
   const form = new FormData();
   form.append('file', selectedFile);
 
-  let url = `${API}/api/upload?sheet_name=${encodeURIComponent(sheetName)}&discount_percent=${discount}`;
-  if (dateVal) url += `&price_date=${dateVal}`;
-
   try {
-    const res = await fetch(url, { method: 'POST', body: form });
+    const res = await fetch(API + url, { method: 'POST', body: form });
     const data = await res.json();
+    if (!res.ok) { log('Ошибка: ' + (data.detail || res.statusText), 'err'); return; }
 
-    if (!res.ok) {
-      log('Ошибка: ' + (data.detail || res.statusText), 'err');
-      return;
-    }
-
-    log(`Файл: ${data.filename}`, 'ok');
-    log(`Лист: ${data.sheet_name}`, 'ok');
+    log(`✓ Обработано листов: ${data.sheets_processed}`, 'ok');
+    log(`Новых товаров: ${data.total_stats.new}`, 'ok');
+    log(`Изменено цен: ${data.total_stats.changed}`, 'ok');
+    log(`Без изменений: ${data.total_stats.unchanged}`, 'ok');
     log(`Дата прайса: ${fmtDate(data.price_date)}`, 'ok');
-    log(`Новых товаров: ${data.stats.new}`, 'ok');
-    log(`Изменилось цен: ${data.stats.changed}`, 'ok');
-    log(`Без изменений: ${data.stats.unchanged}`, 'ok');
-    log(`Всего позиций: ${data.stats.total}`, 'ok');
-    log('✓ Загрузка завершена успешно', 'ok');
-
-    // Обновляем данные
-    await initSheets();
-    currentPage = 0;
-    await loadPrices();
-
-  } catch(e) {
+    log('✓ Загрузка завершена', 'ok');
+    await initSheets(); currentPage = 0; loadPrices();
+  } catch (e) {
     log('Сетевая ошибка: ' + e.message, 'err');
   } finally {
-    document.getElementById('upload-btn').disabled = false;
+    btn.textContent = 'Загрузить все листы'; btn.disabled = false;
+  }
+}
+
+// ── Upload: плоский прайс ─────────────────────────────────────────────────────
+async function uploadFlat() {
+  if (!selectedFile) return;
+  const supplier  = document.getElementById('flat-supplier').value.trim();
+  const sheetName = document.getElementById('flat-sheet').value.trim();
+  const discount  = parseFloat(document.getElementById('flat-discount').value) || 0;
+  const dateVal   = document.getElementById('flat-date').value;
+  if (!supplier) { alert('Укажите название поставщика'); return; }
+
+  const btn = document.getElementById('flat-btn');
+  btn.disabled = true;
+  showLog();
+  log('Отправка...', 'info');
+
+  let url = `/api/upload/flat?supplier_name=${encodeURIComponent(supplier)}&discount_percent=${discount}`;
+  if (sheetName) url += `&sheet_name=${encodeURIComponent(sheetName)}`;
+  if (dateVal)   url += `&price_date=${dateVal}`;
+
+  const form = new FormData();
+  form.append('file', selectedFile);
+  try {
+    const data = await api(url, { method: 'POST', body: form });
+    log(`Поставщик: ${data.supplier}`, 'ok');
+    log(`Дата прайса: ${fmtDate(data.price_date)}`, 'ok');
+    log(`Новых: ${data.stats.new}`, 'ok');
+    log(`Изменено: ${data.stats.changed}`, 'ok');
+    log(`Без изменений: ${data.stats.unchanged}`, 'ok');
+    log('✓ Готово', 'ok');
+    await initSheets(); currentPage = 0; loadPrices();
+  } catch (e) {
+    log('Ошибка: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
   }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-// Предустановим сегодняшние даты для сравнения
-(function setDefaultDates() {
-  const today = new Date().toISOString().split('T')[0];
+(() => {
+  const today    = new Date().toISOString().split('T')[0];
   const monthAgo = new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0];
-  document.getElementById('compare-to').value = today;
+  document.getElementById('compare-to').value   = today;
   document.getElementById('compare-from').value = monthAgo;
 })();
 
-async function init() {
-  await initSheets();
-  loadPrices();
-}
-
+async function init() { await initSheets(); loadPrices(); }
 init();
 </script>
 </body>
